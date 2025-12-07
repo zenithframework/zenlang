@@ -1,4 +1,4 @@
-# Zenith Language Framework - Windows Installer
+﻿# Zenith Language Framework - Windows Installer
 # Installs Zenith compiler and sets up PATH for Windows systems
 # Requires PowerShell 5.0+ and Administrator privileges
 
@@ -49,13 +49,13 @@ function Get-ScriptLocation {
 }
 
 function Find-ZenithSource {
-    # Look for zenith-compiler in parent directory structure
+    # Look for compiler in parent directory structure
     $currentPath = Get-ScriptLocation
     $searchPaths = @(
-        (Join-Path $currentPath "..\zenith-compiler"),
+        (Join-Path $currentPath "..\compiler"),
         (Join-Path $currentPath "..\.."),
-        "C:\Projects\zenith-compiler",
-        "C:\Users\$env:USERNAME\Desktop\zenith-compiler"
+        "C:\Projects\compiler",
+        "C:\Users\$env:USERNAME\Desktop\compiler"
     )
     
     foreach ($path in $searchPaths) {
@@ -416,3 +416,4 @@ Write-Host "  zen --version       Show version information"
 Write-Host "  zen compile file.zen  Compile a Zen program"
 Write-Host "  zen execute file.zen  Run a Zen program"
 Write-Host ""
+

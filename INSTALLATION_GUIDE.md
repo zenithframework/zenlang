@@ -1,4 +1,4 @@
-# Zenith Framework - Complete Installation & Setup Guide
+﻿# Zenith Framework - Complete Installation & Setup Guide
 
 Welcome to the Zenith Framework! This guide covers installation, setup, and quick start for all platforms.
 
@@ -63,14 +63,14 @@ cd zenith
 
 #### Step 2: Install Compiler
 ```bash
-cd zenith-compiler
+cd compiler
 pip install -e .
 cd ..
 ```
 
 #### Step 3: Install CLI
 ```bash
-cd zenith-cli
+cd cli
 pip install -e .
 cd ..
 ```
@@ -497,3 +497,5 @@ For issues or questions:
 ---
 
 **Happy coding with Zenith!** 🚀
+
+

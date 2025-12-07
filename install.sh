@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Zenith Framework - Pure Zenith Installation (NO PYTHON!)
 # Usage: bash install.sh [options]
 # Platforms: macOS, Linux, WSL
@@ -99,7 +99,7 @@ build_compiler() {
     log_info "Verify: Stage 1 and Stage 2 outputs identical"
     echo ""
     
-    COMPILER_PATH="$SOURCE_DIR/zenith-compiler-native"
+    COMPILER_PATH="$SOURCE_DIR/compiler-native"
     
     if [ -d "$COMPILER_PATH" ]; then
         log_info "Compiling .zen source files..."

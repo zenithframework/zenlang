@@ -1,4 +1,4 @@
-# Zenith Native Compiler
+﻿# Zenith Native Compiler
 
 **Self-Hosting Zenith Compiler Written Entirely in Zenith**
 
@@ -173,12 +173,12 @@ main()
 
 1. **Stage 1**: Compile Zenith compiler with Python compiler
    ```bash
-   python3 bootstrap.py --input zenith-compiler-native/src/*.zen --output zc-stage1
+   python3 bootstrap.py --input compiler-native/src/*.zen --output zc-stage1
    ```
 
 2. **Stage 2**: Recompile with stage 1 compiler
    ```bash
-   ./zc-stage1 compile zenith-compiler-native/src/*.zen -o zc-stage2
+   ./zc-stage1 compile compiler-native/src/*.zen -o zc-stage2
    ```
 
 3. **Verification**: Compare stage 1 and stage 2 output
@@ -332,3 +332,4 @@ Zenith Compiler © 2025 Zenith Framework Contributors
 **Current Phase**: Foundation (Lexer/Parser complete, Compiler/VM in progress)  
 **Target Release**: Q1 2025  
 **Performance Goal**: 5-10x faster than Python version
+

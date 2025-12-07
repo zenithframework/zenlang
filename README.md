@@ -1,4 +1,4 @@
-# Zenith Programming Language Framework
+﻿# Zenith Programming Language Framework
 
 ![Zenith](https://img.shields.io/badge/Zenith-v1.0.0-blue)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
@@ -162,7 +162,7 @@ The `examples/` directory includes 15+ working programs:
 ### Build Steps
 
 ```powershell
-cd zenlang/zenith-compiler-native
+cd zenlang/compiler-native
 .\bootstrap.ps1 -Test
 ```
 
@@ -235,7 +235,7 @@ print(stats);
 
 ```
 zenlang/
-├── zenith-compiler-native/    # Main compiler implementation
+├── compiler-native/    # Main compiler implementation
 │   ├── src/
 │   │   ├── lexer.zen         # Tokenization
 │   │   ├── parser.zen        # Syntax analysis
@@ -248,8 +248,8 @@ zenlang/
 │   ├── bootstrap.ps1         # Windows build
 │   └── bootstrap.sh          # Linux/macOS build
 │
-├── zenith-cli/               # Command-line tools
-├── zenith-vscode/            # VS Code syntax highlighting
+├── cli/               # Command-line tools
+├── vscode-extension/            # VS Code syntax highlighting
 │
 ├── examples/                 # 15+ working examples
 ├── docs/                     # Additional documentation
@@ -326,3 +326,6 @@ Special thanks to:
 **Happy coding with Zenith!** 🚀
 
 Made with ❤️ by the Zenith Framework Team
+
+
+

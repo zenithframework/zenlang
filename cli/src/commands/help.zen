@@ -1,5 +1,5 @@
-// Command: help
-// File: zenith-cli/src/commands/help.zen
+﻿// Command: help
+// File: cli/src/commands/help.zen
 import core::console::{println};
 
 fn show_general_help() {
@@ -15,3 +15,4 @@ fn show_general_help() {
     println("  help             Display this help message.");
     println("");
 }
+

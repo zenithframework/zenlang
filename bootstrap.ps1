@@ -1,4 +1,4 @@
-# Zenith Compiler Bootstrap Builder
+﻿# Zenith Compiler Bootstrap Builder
 # Purpose: Build zen native compiler from Zenith sources
 
 param([switch]$Test)
@@ -29,13 +29,13 @@ Write-Host "[OK] Build directories created" -ForegroundColor Green
 # Verify sources
 Write-Host "[..] Verifying source files..."
 $Sources = @(
-    "zenith-compiler-native/src/lexer.zen",
-    "zenith-compiler-native/src/parser.zen",
-    "zenith-compiler-native/src/ast.zen",
-    "zenith-compiler-native/src/compiler.zen",
-    "zenith-compiler-native/src/code.zen",
-    "zenith-compiler-native/src/vm.zen",
-    "zenith-compiler-native/src/main.zen"
+    "compiler-native/src/lexer.zen",
+    "compiler-native/src/parser.zen",
+    "compiler-native/src/ast.zen",
+    "compiler-native/src/compiler.zen",
+    "compiler-native/src/code.zen",
+    "compiler-native/src/vm.zen",
+    "compiler-native/src/main.zen"
 )
 
 $AllPresent = $true
@@ -110,3 +110,4 @@ Write-Host "  1. Test: .\bin\zen.bat version"
 Write-Host "  2. Compile: .\bin\zen.bat compile examples/hello.zen"
 Write-Host "  3. Execute: .\bin\zen.bat execute hello.zbc"
 Write-Host ""
+

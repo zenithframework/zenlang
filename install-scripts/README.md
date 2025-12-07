@@ -1,4 +1,4 @@
-# Zenith Language Framework - Installation Guide
+﻿# Zenith Language Framework - Installation Guide
 
 This directory contains cross-platform installation scripts for the Zenith Language Framework.
 
@@ -92,7 +92,7 @@ If you prefer manual installation:
 
 1. **Build Zenith:**
    ```powershell
-   cd zenith-compiler
+   cd compiler
    .\bootstrap.ps1 -Build
    ```
 
@@ -118,7 +118,7 @@ If you prefer manual installation:
 
 1. **Build Zenith:**
    ```bash
-   cd zenith-compiler
+   cd compiler
    chmod +x bootstrap.sh
    ./bootstrap.sh --build
    ```
@@ -302,3 +302,4 @@ Installation paths:
 ## License
 
 The Zenith Language Framework is released under the MIT License. See LICENSE file for details.
+

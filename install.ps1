@@ -1,4 +1,4 @@
-# Zenith Framework - Pure Zenith Installation Script (NO PYTHON!)
+﻿# Zenith Framework - Pure Zenith Installation Script (NO PYTHON!)
 # Usage: powershell -ExecutionPolicy Bypass -File install.ps1
 # Platform: Windows 10/11
 
@@ -99,7 +99,7 @@ function Build-Compiler {
     Write-Info "Verify: Stage 1 and Stage 2 outputs are identical"
     Write-Host ""
     
-    $SourcePath = "$SourceDir\zenith-compiler-native"
+    $SourcePath = "$SourceDir\compiler-native"
     
     if (Test-Path $SourcePath) {
         Write-Info "Source found at: $SourcePath"

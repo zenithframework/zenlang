@@ -1,5 +1,5 @@
-// Command: new
-// File: zenith-cli/src/commands/new.zen
+﻿// Command: new
+// File: cli/src/commands/new.zen
 
 import core::console::{println, style};
 import core::fs::{create_dir, write_file};
@@ -43,3 +43,4 @@ fn handle(args: array<string>) {
     println("  zenpkg install  // (Once zenpkg is available)");
     println("  zen serve       // (Once the dev server is available)");
 }
+

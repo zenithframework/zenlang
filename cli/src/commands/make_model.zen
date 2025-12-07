@@ -1,5 +1,5 @@
-// Command: make:model
-// File: zenith-cli/src/commands/make_model.zen
+﻿// Command: make:model
+// File: cli/src/commands/make_model.zen
 
 import core::console::{println, style};
 import core::fs::{write_file, file_exists};
@@ -62,3 +62,4 @@ fn create_migration_for(model_name: string) {
     write_file(migration_file_name, migration_stub);
     println(style("Migration created successfully: ", "green") + style(migration_file_name, "bold"));
 }
+

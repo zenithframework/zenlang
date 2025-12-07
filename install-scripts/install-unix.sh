@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Zenith Language Framework - Unix/Linux/macOS Installer
 # Installs Zenith compiler and sets up PATH for Unix-like systems
 
@@ -56,14 +56,14 @@ check_sudo() {
 }
 
 find_source() {
-    # Look for zenith-compiler in parent directories
+    # Look for compiler in parent directories
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local possible_paths=(
-        "$script_dir/../zenith-compiler"
+        "$script_dir/../compiler"
         "$script_dir/.."
-        "$HOME/zenith-compiler"
-        "$HOME/Desktop/zenith-compiler"
-        "/opt/zenith-compiler"
+        "$HOME/compiler"
+        "$HOME/Desktop/compiler"
+        "/opt/compiler"
     )
     
     for path in "${possible_paths[@]}"; do
@@ -339,3 +339,4 @@ echo "  zen --version       Show version information"
 echo "  zen compile file.zen  Compile a Zen program"
 echo "  zen execute file.zen  Run a Zen program"
 echo ""
+

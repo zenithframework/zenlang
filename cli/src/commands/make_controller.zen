@@ -1,5 +1,5 @@
-// Command: make:controller
-// File: zenith-cli/src/commands/make_controller.zen
+﻿// Command: make:controller
+// File: cli/src/commands/make_controller.zen
 
 import core::console::{println, style};
 import core::fs::{write_file, file_exists};
@@ -40,3 +40,4 @@ fn handle(args: array<string>) {
 
     println(style("Controller created successfully: ", "green") + style(file_path, "bold"));
 }
+

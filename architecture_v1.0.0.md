@@ -1,4 +1,4 @@
-# Zenith Framework - System Architecture - v1.0.0
+﻿# Zenith Framework - System Architecture - v1.0.0
 
 **Status:** ✅ Production Release  
 **Version:** 1.0.0  
@@ -81,7 +81,7 @@ The Zenith Language Framework v1.0.0 consists of:
 
 ```
 zenith-framework/
-├── zenith-compiler-native/          # Zen compiler implementation
+├── compiler-native/          # Zen compiler implementation
 │   └── src/
 │       ├── lexer.zen               # Lexical analysis (16.2 KB)
 │       ├── parser.zen              # Syntax analysis (22.4 KB)
@@ -92,13 +92,13 @@ zenith-framework/
 │       ├── main.zen                # CLI entry (8.7 KB)
 │       └── token.zen               # Token types (~2 KB)
 │
-├── zenith-vscode/                  # VS Code extension
+├── vscode-extension/                  # VS Code extension
 │   ├── package.json
 │   ├── language-configuration.json
 │   └── syntaxes/
 │       └── zenith.tmLanguage.json
 │
-├── zenith-cli/                      # CLI tools
+├── cli/                      # CLI tools
 │   ├── zen/
 │   │   ├── __init__.py
 │   │   └── cli.py
@@ -147,7 +147,7 @@ zenith-framework/
 │   ├── compiler.zbc               # Compiled compiler bytecode
 │   └── runtime.zbc                # Runtime library
 │
-├── zenith-docs/                    # Documentation website
+├── docs/                    # Documentation website
 │   └── index.html
 │
 ├── bootstrap.ps1                   # Windows build script
@@ -625,3 +625,7 @@ export function my_func() { };
 
 **Zenith Language Framework v1.0.0**  
 **Architecture Documentation - APPROVED**
+
+
+
+

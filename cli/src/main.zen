@@ -1,5 +1,5 @@
-// Zenith CLI Entry Point
-// File: zenith-cli/src/main.zen
+﻿// Zenith CLI Entry Point
+// File: cli/src/main.zen
 
 // Import necessary core libraries (these would be part of Zenith's standard library)
 import core::os::{args};
@@ -36,3 +36,4 @@ fn main() {
         }
     }
 }
+

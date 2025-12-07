@@ -1,4 +1,4 @@
-# Contributing to Zenith Framework
+﻿# Contributing to Zenith Framework
 
 Thank you for your interest in contributing to the Zenith programming language framework! This document provides guidelines and instructions for contributing.
 
@@ -146,7 +146,7 @@ Examples should:
 The framework uses PowerShell for builds:
 
 ```powershell
-cd zenith-compiler-native
+cd compiler-native
 
 # Full build with testing
 .\bootstrap.ps1 -Test
@@ -161,7 +161,7 @@ cd zenith-compiler-native
 ### File Organization
 
 ```
-zenith-compiler-native/
+compiler-native/
 ├── src/
 │   ├── lexer.zen        # Tokenization
 │   ├── parser.zen       # Syntax analysis
@@ -259,3 +259,4 @@ Thank you for contributing to Zenith! 🚀
 ---
 
 **Last Updated**: December 7, 2025
+

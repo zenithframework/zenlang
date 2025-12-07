@@ -1,4 +1,4 @@
-[project]
+﻿[project]
 name = "zenith-framework"
 version = "1.0.0"
 description = "Pure Zenith Framework - A modern programming language and compiler written entirely in Zenith (no Python dependencies)"
@@ -46,20 +46,20 @@ stages = [
 
 [modules]
 # Core compiler modules
-"token" = "zenith-compiler-native/src/token.zen"
-"lexer" = "zenith-compiler-native/src/lexer.zen"
-"ast" = "zenith-compiler-native/src/ast.zen"
-"parser" = "zenith-compiler-native/src/parser.zen"
-"compiler" = "zenith-compiler-native/src/compiler.zen"
-"code" = "zenith-compiler-native/src/code.zen"
-"vm" = "zenith-compiler-native/src/vm.zen"
-"object" = "zenith-compiler-native/src/object.zen"
+"token" = "compiler-native/src/token.zen"
+"lexer" = "compiler-native/src/lexer.zen"
+"ast" = "compiler-native/src/ast.zen"
+"parser" = "compiler-native/src/parser.zen"
+"compiler" = "compiler-native/src/compiler.zen"
+"code" = "compiler-native/src/code.zen"
+"vm" = "compiler-native/src/vm.zen"
+"object" = "compiler-native/src/object.zen"
 
 # CLI
-"cli" = "zenith-cli/zen/cli.zen"
+"cli" = "cli/zen/cli.zen"
 
 # Standard library
-"builtins" = "zenith-compiler-native/src/builtins.zen"
+"builtins" = "compiler-native/src/builtins.zen"
 
 [runtime]
 # Runtime settings
@@ -102,13 +102,13 @@ backward-compatible = true
 
 [testing]
 # Test configuration
-test-directory = "zenith-compiler/tests"
+test-directory = "compiler/tests"
 coverage-required = 0.85
 test-runner = "zen-test"
 
 [documentation]
 # Documentation settings
-docs-directory = "zenith-docs"
+docs-directory = "docs"
 api-docs-generated = true
 generate-coverage = true
 
@@ -129,3 +129,7 @@ optimization-level = 3
 debug-symbols = false
 profiling = false
 strip-binary = true
+
+
+
+

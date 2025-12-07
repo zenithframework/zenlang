@@ -1,4 +1,4 @@
-# Zenith Compiler v1.0.0 - Technical Reference
+﻿# Zenith Compiler v1.0.0 - Technical Reference
 
 **Status:** ✅ Production Release  
 **Version:** 1.0.0  
@@ -539,7 +539,7 @@ Outputs:
 - `USER_GUIDE.md` - Language reference for developers
 - `API_REFERENCE.md` - Built-in functions and APIs
 - `examples/` - Sample Zen programs
-- `zenith-compiler-native/src/` - Source code
+- `compiler-native/src/` - Source code
 
 ### Further Reading
 
@@ -588,3 +588,4 @@ Outputs:
 
 **Zenith Compiler v1.0.0**  
 **Status:** Production Ready ✅
+
