@@ -1,0 +1,200 @@
+// Edge Cases and Error Handling Tests
+// Tests boundary conditions, type mismatches, and edge cases
+
+fun test_division_by_zero() {
+  println("Testing division by zero:");
+  var x = 10;
+  var y = 0;
+  try {
+    var result = x / y;
+    println("Result: " + result);
+  } catch (e) {
+    println("Caught error: " + e);
+  }
+}
+
+fun test_string_operations() {
+  println("\nTesting string edge cases:");
+  
+  // Empty string
+  var empty = "";
+  println("Empty string length: " + empty.len());
+  
+  // String concatenation with nil
+  try {
+    var result = "Hello" + nil;
+    println("Result: " + result);
+  } catch (e) {
+    println("Caught type error: " + e);
+  }
+  
+  // Index out of bounds
+  var str = "Hello";
+  println("String: " + str);
+  println("Length: " + str.len());
+  try {
+    println("Char at 0: " + str.at(0));
+    println("Char at 10: " + str.at(10));
+  } catch (e) {
+    println("Caught index error: " + e);
+  }
+}
+
+fun test_array_operations() {
+  println("\nTesting array edge cases:");
+  
+  // Empty array
+  var empty = [];
+  println("Empty array length: " + empty.len());
+  
+  // Array with mixed types
+  var mixed = [1, "two", true, nil, 5.5];
+  println("Mixed array length: " + mixed.len());
+  for (var i = 0; i < mixed.len(); i = i + 1) {
+    println("  [" + i + "]: " + mixed.at(i));
+  }
+  
+  // Index out of bounds
+  try {
+    println("Element at 10: " + mixed.at(10));
+  } catch (e) {
+    println("Caught error: " + e);
+  }
+}
+
+fun test_type_conversions() {
+  println("\nTesting type conversions:");
+  
+  // String to number
+  var str = "42";
+  println("String '" + str + "' type check");
+  
+  // Boolean operations
+  var t = true;
+  var f = false;
+  println("true && false = " + (t && f));
+  println("true || false = " + (t || f));
+  println("!true = " + (!t));
+  
+  // Nil checks
+  var n = nil;
+  println("nil == nil: " + (n == nil));
+  println("nil != 0: " + (n != 0));
+}
+
+fun test_function_edge_cases() {
+  println("\nTesting function edge cases:");
+  
+  // Recursive function with base case
+  fun factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+  }
+  
+  println("factorial(5) = " + factorial(5));
+  println("factorial(0) = " + factorial(0));
+  println("factorial(1) = " + factorial(1));
+  
+  // Function with no return
+  fun void_func() {
+    var x = 10;
+  }
+  
+  var result = void_func();
+  println("void_func() returned: " + result);
+}
+
+fun test_scope_and_shadowing() {
+  println("\nTesting scope and variable shadowing:");
+  
+  var x = "outer";
+  println("Outer x: " + x);
+  
+  {
+    var x = "inner";
+    println("Inner x: " + x);
+    {
+      var x = "deeper";
+      println("Deeper x: " + x);
+    }
+    println("Back to inner x: " + x);
+  }
+  println("Back to outer x: " + x);
+}
+
+fun test_object_operations() {
+  println("\nTesting object operations:");
+  
+  var obj = {"name": "Zenith", "version": 1.0, "active": true};
+  println("Object name: " + obj.get("name"));
+  println("Object version: " + obj.get("version"));
+  
+  // Nested objects
+  var nested = {"outer": {"inner": "value"}};
+  println("Nested value: " + nested.get("outer").get("inner"));
+  
+  // Missing key
+  try {
+    println("Missing key: " + obj.get("missing"));
+  } catch (e) {
+    println("Caught error: " + e);
+  }
+}
+
+fun test_loop_edge_cases() {
+  println("\nTesting loop edge cases:");
+  
+  // For loop with large range
+  var sum = 0;
+  for (var i = 0; i < 100; i = i + 1) {
+    sum = sum + i;
+  }
+  println("Sum 0-99: " + sum);
+  
+  // While loop
+  var count = 0;
+  while (count < 5) {
+    count = count + 1;
+  }
+  println("While loop count: " + count);
+  
+  // Nested loops
+  var total = 0;
+  for (var i = 0; i < 3; i = i + 1) {
+    for (var j = 0; j < 3; j = j + 1) {
+      total = total + 1;
+    }
+  }
+  println("Nested loop iterations: " + total);
+}
+
+fun test_comparison_edge_cases() {
+  println("\nTesting comparison edge cases:");
+  
+  // String comparisons
+  println("'abc' < 'def': " + ("abc" < "def"));
+  println("'same' == 'same': " + ("same" == "same"));
+  
+  // Number edge cases
+  println("0 == false: " + (0 == false));
+  println("0 == nil: " + (0 == nil));
+  println("'' == nil: " + ("" == nil));
+  
+  // Array/object equality (reference vs value)
+  var arr1 = [1, 2, 3];
+  var arr2 = [1, 2, 3];
+  println("Array reference equality: " + (arr1 == arr2));
+}
+
+// Main execution
+test_division_by_zero();
+test_string_operations();
+test_array_operations();
+test_type_conversions();
+test_function_edge_cases();
+test_scope_and_shadowing();
+test_object_operations();
+test_loop_edge_cases();
+test_comparison_edge_cases();
+
+println("\n✓ All edge case tests completed");
