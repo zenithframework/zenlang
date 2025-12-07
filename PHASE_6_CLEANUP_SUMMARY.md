@@ -79,7 +79,7 @@ Obsolete file tracking documents:
 
 ---
 
-## Files Retained (10 Core Documentation)
+## Files Retained (11 Core Documentation)
 
 ### Production Documentation
 1. **README.md** (9.5 KB)
@@ -129,6 +129,10 @@ Obsolete file tracking documents:
     - Deliverables and achievements
     - Project timeline
 
+11. **PHASE_6_CLEANUP_SUMMARY.md** (7.2 KB)
+   - Phase 6 cleanup report
+   - Directory restructuring and cleanup statistics
+
 ---
 
 ## Project Structure Results
@@ -145,16 +149,16 @@ Obsolete file tracking documents:
 ### Maintained Directories (11)
 ```
 .github/              → GitHub workflows and templates
-backups/               → Backup archives
+backups/              → Backup archives (renamed from `backup/`)
 bin/                  → Platform-specific executables
 build/                → Build outputs and products
 examples/             → 15+ example programs
-install-scripts/           → Cross-platform installation scripts
-cli/           → CLI tool implementation
-compiler/      → Python compiler implementation
-compiler-native/ → Native Zen compiler implementation
-docs/          → HTML documentation
-vscode-extension/        → VS Code syntax extension
+install-scripts/      → Cross-platform installation scripts (renamed from `installers/`)
+cli/                  → CLI tool implementation (renamed from `zenith-cli/`)
+compiler/             → Python compiler implementation (renamed from `zenith-compiler/`)
+compiler-native/      → Native Zen compiler implementation (renamed from `zenith-compiler-native/`)
+docs/                 → HTML documentation (renamed from `zenith-docs/`)
+vscode-extension/     → VS Code syntax extension (renamed from `zenith-vscode/`)
 ```
 
 ---
