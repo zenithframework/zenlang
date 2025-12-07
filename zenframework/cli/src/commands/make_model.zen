@@ -1,0 +1,65 @@
+﻿// Command: make:model
+// File: cli/src/commands/make_model.zen
+
+import core::console::{println, style};
+import core::fs::{write_file, file_exists};
+import core::string::{to_pascal_case, to_snake_case, pluralize};
+
+// The handle function is called by the main CLI router.
+fn handle(args: array<string>) {
+    if args.length() == 0 {
+        println(style("Error: Model name is required.", "red"));
+        println("Usage: zen make:model <ModelName> [-m]");
+        return;
+    }
+
+    let model_name = to_pascal_case(args[0]);
+    let file_path = "./app/Models/" + model_name + ".zen";
+
+    if file_exists(file_path) {
+        println(style("Error: Model '" + model_name + "' already exists.", "red"));
+        return;
+    }
+
+    let stub = "class " + model_name + " extends Model {\n" 
+             + "    // Zenith ORM will automatically map properties to database columns.\n" 
+             + "    // The table name is assumed to be the plural, snake_case version of the class name.\n" 
+             + "    // In this case: '" + pluralize(to_snake_case(model_name)) + "'\n\n" 
+             + "    // Example of a relationship method:\n" 
+             + "    // fn posts(): HasMany<Post> {\n" 
+             + "    //     return this.hasMany(Post);\n" 
+             + "    // }\n" 
+             + "}\n";
+
+    write_file(file_path, stub);
+    println(style("Model created successfully: ", "green") + style(file_path, "bold"));
+
+    // Check for a `-m` or `--migration` flag to also create a migration.
+    if args.contains("-m") || args.contains("--migration") {
+        create_migration_for(model_name);
+    }
+}
+
+fn create_migration_for(model_name: string) {
+    let table_name = pluralize(to_snake_case(model_name));
+    let timestamp = "2025_12_06_105500"; // Placeholder for a real timestamp function
+    let migration_file_name = "./database/migrations/" + timestamp + "_create_" + table_name + "_table.zen";
+
+    let migration_stub = "migration Create" + to_pascal_case(table_name) + "Table {\n" 
+                       + "    fn up(schema: Schema) {\n" 
+                       + "        schema.create(\"" + table_name + "\", (table: Table) => {\n" 
+                       + "            table.id(); // Auto-incrementing primary key\n" 
+                       + "            table.string(\"name\");
+" 
+                       + "            table.timestamps(); // created_at and updated_at\n" 
+                       + "        });\n" 
+                       + "    }\n\n" 
+                       + "    fn down(schema: Schema) {\n" 
+                       + "        schema.dropIfExists(\"" + table_name + "\");\n" 
+                       + "    }\n" 
+                       + "}\n";
+
+    write_file(migration_file_name, migration_stub);
+    println(style("Migration created successfully: ", "green") + style(migration_file_name, "bold"));
+}
+

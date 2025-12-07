@@ -1,0 +1,66 @@
+// Example: Loops
+// Demonstrates for loops, while loops, and break/continue statements
+
+print("=== Loops Example ===");
+
+// For loop - iterate from 1 to 5
+print("For loop (1 to 5):");
+for (var i = 1; i <= 5; i = i + 1) {
+    print("  i = ", i);
+}
+
+// For loop - iterate over array
+var fruits = ["apple", "banana", "orange"];
+print("\nFor loop over array:");
+for (var i = 0; i < length(fruits); i = i + 1) {
+    print("  ", fruits[i]);
+}
+
+// While loop - count down
+print("\nWhile loop (countdown):");
+var count = 5;
+while (count > 0) {
+    print("  ", count);
+    count = count - 1;
+}
+
+// While loop with break
+print("\nWhile loop with break:");
+var x = 0;
+while (true) {
+    print("  x = ", x);
+    x = x + 1;
+    if (x >= 3) {
+        print("  Breaking...");
+        break;
+    }
+}
+
+// For loop with continue
+print("\nFor loop with continue (skip even numbers):");
+for (var i = 1; i <= 10; i = i + 1) {
+    if (i % 2 == 0) {
+        continue;
+    }
+    print("  ", i);
+}
+
+// Nested loops
+print("\nNested loops (times table):");
+for (var i = 1; i <= 3; i = i + 1) {
+    for (var j = 1; j <= 3; j = j + 1) {
+        print("  ", i, " * ", j, " = ", i * j);
+    }
+}
+
+// Do-while style (simulated with while and conditional)
+print("\nSum with while loop:");
+var sum = 0;
+var n = 0;
+while (n < 5) {
+    sum = sum + n;
+    n = n + 1;
+}
+print("  Sum of 0+1+2+3+4 = ", sum);
+
+print("=== Done ===");

@@ -1,0 +1,63 @@
+// Example: Operators
+// Demonstrates all arithmetic, logical, comparison, and other operators
+
+print("=== Operators Example ===");
+
+var a = 10;
+var b = 3;
+
+print("Arithmetic Operators:");
+print("  ", a, " + ", b, " = ", a + b);
+print("  ", a, " - ", b, " = ", a - b);
+print("  ", a, " * ", b, " = ", a * b);
+print("  ", a, " / ", b, " = ", a / b);
+print("  ", a, " % ", b, " = ", a % b);
+
+print("\nComparison Operators:");
+print("  ", a, " == ", b, " ? ", a == b);
+print("  ", a, " != ", b, " ? ", a != b);
+print("  ", a, " < ", b, " ? ", a < b);
+print("  ", a, " > ", b, " ? ", a > b);
+print("  ", a, " <= ", a, " ? ", a <= a);
+print("  ", a, " >= ", b, " ? ", a >= b);
+
+print("\nLogical Operators:");
+var x = true;
+var y = false;
+print("  true && true = ", true && true);
+print("  true && false = ", true && false);
+print("  true || false = ", true || false);
+print("  false || false = ", false || false);
+print("  !true = ", !true);
+print("  !false = ", !false);
+
+print("\nUnary Operators:");
+var num = 5;
+print("  +", num, " = ", +num);
+print("  -", num, " = ", -num);
+print("  !true = ", !true);
+
+print("\nAssignment Operators:");
+var c = 10;
+print("  c = ", c);
+c = c + 5;
+print("  c = c + 5 → c = ", c);
+c = c - 3;
+print("  c = c - 3 → c = ", c);
+c = c * 2;
+print("  c = c * 2 → c = ", c);
+c = c / 4;
+print("  c = c / 4 → c = ", c);
+
+print("\nType Operators:");
+print("  nil type check: ", nil == nil);
+print("  boolean: ", true == true);
+print("  number: ", 42 == 42);
+print("  string: ", "test" == "test");
+
+print("\nOperator Precedence:");
+print("  2 + 3 * 4 = ", 2 + 3 * 4);
+print("  (2 + 3) * 4 = ", (2 + 3) * 4);
+print("  10 - 4 + 2 = ", 10 - 4 + 2);
+
+print("=== Done ===");

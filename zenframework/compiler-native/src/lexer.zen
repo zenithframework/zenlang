@@ -1,0 +1,484 @@
+// Zenith Compiler - Lexer Implementation
+// File: lexer.zen
+// Purpose: Tokenize Zenith source code
+// Performance: Designed for > 100 MB/s throughput
+
+import "token.zen"
+
+// Memory-efficient lexer using streaming input
+component Lexer {
+    source: string              // Full source code
+    position: int              // Current byte position
+    line: int                  // Current line number
+    column: int                // Current column number
+    current_char: byte         // Current character
+    next_char: byte            // Lookahead character
+    
+    fn new(source: string) -> Lexer {
+        lexer = Lexer {
+            source: source,
+            position: 0,
+            line: 1,
+            column: 1,
+            current_char: 0,
+            next_char: 0
+        }
+        lexer._init_char()
+        return lexer
+    }
+    
+    // Initialize current and next character
+    fn _init_char() -> void {
+        if position < len(source) {
+            current_char = source[position]
+        } else {
+            current_char = 0
+        }
+        
+        if position + 1 < len(source) {
+            next_char = source[position + 1]
+        } else {
+            next_char = 0
+        }
+    }
+    
+    // Advance to next character
+    fn _advance() -> void {
+        if current_char == '\n' {
+            line = line + 1
+            column = 1
+        } else {
+            column = column + 1
+        }
+        
+        position = position + 1
+        current_char = next_char
+        
+        if position + 1 < len(source) {
+            next_char = source[position + 1]
+        } else {
+            next_char = 0
+        }
+    }
+    
+    // Peek at next character without advancing
+    fn _peek() -> byte {
+        return next_char
+    }
+    
+    // Skip whitespace (space, tab, but not newline for now)
+    fn _skip_whitespace() -> void {
+        while current_char == ' ' || current_char == '\t' {
+            _advance()
+        }
+    }
+    
+    // Skip line comment: //
+    fn _skip_line_comment() -> void {
+        while current_char != '\n' && current_char != 0 {
+            _advance()
+        }
+    }
+    
+    // Skip block comment: /* ... */
+    fn _skip_block_comment() -> void {
+        _advance()  // Skip *
+        
+        while current_char != 0 {
+            if current_char == '*' && _peek() == '/' {
+                _advance()  // Skip *
+                _advance()  // Skip /
+                break
+            }
+            _advance()
+        }
+    }
+    
+    // Read an identifier or keyword
+    fn _read_identifier() -> string {
+        start = position
+        
+        while is_identifier_continue(current_char) {
+            _advance()
+        }
+        
+        return source[start:position]
+    }
+    
+    // Read a number (int, float, hex, octal, binary)
+    fn _read_number() -> Token {
+        start_pos = position
+        start_line = line
+        start_col = column
+        
+        // Handle hex, octal, binary prefixes
+        if current_char == '0' {
+            if _peek() == 'x' || _peek() == 'X' {
+                // Hexadecimal
+                _advance()  // Skip 0
+                _advance()  // Skip x
+                while is_hex_digit(current_char) {
+                    _advance()
+                }
+                value = source[start_pos:position]
+                return Token.new(TokenType.INT, start_line, start_col, value)
+            }
+            
+            if _peek() == 'o' || _peek() == 'O' {
+                // Octal
+                _advance()  // Skip 0
+                _advance()  // Skip o
+                while is_octal_digit(current_char) {
+                    _advance()
+                }
+                value = source[start_pos:position]
+                return Token.new(TokenType.INT, start_line, start_col, value)
+            }
+            
+            if _peek() == 'b' || _peek() == 'B' {
+                // Binary
+                _advance()  // Skip 0
+                _advance()  // Skip b
+                while is_binary_digit(current_char) {
+                    _advance()
+                }
+                value = source[start_pos:position]
+                return Token.new(TokenType.INT, start_line, start_col, value)
+            }
+        }
+        
+        // Read decimal digits
+        while is_digit(current_char) {
+            _advance()
+        }
+        
+        // Check for decimal point
+        is_float = false
+        if current_char == '.' && is_digit(_peek()) {
+            is_float = true
+            _advance()  // Skip .
+            while is_digit(current_char) {
+                _advance()
+            }
+        }
+        
+        // Check for exponent (e or E)
+        if current_char == 'e' || current_char == 'E' {
+            is_float = true
+            _advance()  // Skip e/E
+            
+            if current_char == '+' || current_char == '-' {
+                _advance()
+            }
+            
+            while is_digit(current_char) {
+                _advance()
+            }
+        }
+        
+        value = source[start_pos:position]
+        token_type = is_float ? TokenType.FLOAT : TokenType.INT
+        return Token.new(token_type, start_line, start_col, value)
+    }
+    
+    // Read a string literal
+    fn _read_string(quote: byte) -> string {
+        start = position + 1
+        _advance()  // Skip opening quote
+        
+        result = ""
+        
+        while current_char != quote && current_char != 0 {
+            if current_char == '\\' {
+                // Handle escape sequences
+                _advance()
+                match current_char {
+                    'n' -> result = result + "\n"
+                    't' -> result = result + "\t"
+                    'r' -> result = result + "\r"
+                    '\\' -> result = result + "\\"
+                    '"' -> result = result + "\""
+                    '\'' -> result = result + "\'"
+                    default -> {
+                        result = result + "\\"
+                        result = result + current_char
+                    }
+                }
+            } else {
+                result = result + current_char
+            }
+            _advance()
+        }
+        
+        if current_char == quote {
+            _advance()  // Skip closing quote
+        }
+        
+        return result
+    }
+    
+    // Main token reading function
+    fn next_token() -> Token {
+        _skip_whitespace()
+        
+        start_line = line
+        start_col = column
+        
+        match current_char {
+            // Single-character tokens
+            '(' -> {
+                _advance()
+                return Token.new(TokenType.LPAREN, start_line, start_col, "(")
+            }
+            ')' -> {
+                _advance()
+                return Token.new(TokenType.RPAREN, start_line, start_col, ")")
+            }
+            '{' -> {
+                _advance()
+                return Token.new(TokenType.LBRACE, start_line, start_col, "{")
+            }
+            '}' -> {
+                _advance()
+                return Token.new(TokenType.RBRACE, start_line, start_col, "}")
+            }
+            '[' -> {
+                _advance()
+                return Token.new(TokenType.LBRACKET, start_line, start_col, "[")
+            }
+            ']' -> {
+                _advance()
+                return Token.new(TokenType.RBRACKET, start_line, start_col, "]")
+            }
+            ',' -> {
+                _advance()
+                return Token.new(TokenType.COMMA, start_line, start_col, ",")
+            }
+            ';' -> {
+                _advance()
+                return Token.new(TokenType.SEMICOLON, start_line, start_col, ";")
+            }
+            ':' -> {
+                _advance()
+                if current_char == ':' {
+                    _advance()
+                    return Token.new(TokenType.DOUBLE_COLON, start_line, start_col, "::")
+                }
+                return Token.new(TokenType.COLON, start_line, start_col, ":")
+            }
+            '.' -> {
+                _advance()
+                if current_char == '.' {
+                    _advance()
+                    if current_char == '.' {
+                        _advance()
+                        return Token.new(TokenType.SPREAD, start_line, start_col, "...")
+                    }
+                }
+                return Token.new(TokenType.DOT, start_line, start_col, ".")
+            }
+            '@' -> {
+                _advance()
+                return Token.new(TokenType.AT, start_line, start_col, "@")
+            }
+            '#' -> {
+                _advance()
+                return Token.new(TokenType.HASH, start_line, start_col, "#")
+            }
+            
+            // Operators with lookahead
+            '+' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.PLUS_ASSIGN, start_line, start_col, "+=")
+                }
+                return Token.new(TokenType.PLUS, start_line, start_col, "+")
+            }
+            '-' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.MINUS_ASSIGN, start_line, start_col, "-=")
+                }
+                return Token.new(TokenType.MINUS, start_line, start_col, "-")
+            }
+            '*' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.STAR_ASSIGN, start_line, start_col, "*=")
+                }
+                if current_char == '*' {
+                    _advance()
+                    return Token.new(TokenType.POWER, start_line, start_col, "**")
+                }
+                return Token.new(TokenType.STAR, start_line, start_col, "*")
+            }
+            '/' -> {
+                if _peek() == '/' {
+                    // Line comment
+                    _skip_line_comment()
+                    return next_token()  // Skip comment, get next token
+                }
+                if _peek() == '*' {
+                    // Block comment
+                    _skip_block_comment()
+                    return next_token()  // Skip comment, get next token
+                }
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.SLASH_ASSIGN, start_line, start_col, "/=")
+                }
+                return Token.new(TokenType.SLASH, start_line, start_col, "/")
+            }
+            '%' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.MOD_ASSIGN, start_line, start_col, "%=")
+                }
+                return Token.new(TokenType.PERCENT, start_line, start_col, "%")
+            }
+            '=' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.EQ, start_line, start_col, "==")
+                }
+                if current_char == '>' {
+                    _advance()
+                    return Token.new(TokenType.ARROW, start_line, start_col, "=>")
+                }
+                return Token.new(TokenType.ASSIGN, start_line, start_col, "=")
+            }
+            '!' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.NOT_EQ, start_line, start_col, "!=")
+                }
+                return Token.new(TokenType.NOT, start_line, start_col, "!")
+            }
+            '<' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    if current_char == '>' {
+                        _advance()
+                        return Token.new(TokenType.SPACESHIP, start_line, start_col, "<=>")
+                    }
+                    return Token.new(TokenType.LTE, start_line, start_col, "<=")
+                }
+                if current_char == '<' {
+                    _advance()
+                    return Token.new(TokenType.LSHIFT, start_line, start_col, "<<")
+                }
+                return Token.new(TokenType.LT, start_line, start_col, "<")
+            }
+            '>' -> {
+                _advance()
+                if current_char == '=' {
+                    _advance()
+                    return Token.new(TokenType.GTE, start_line, start_col, ">=")
+                }
+                if current_char == '>' {
+                    _advance()
+                    return Token.new(TokenType.RSHIFT, start_line, start_col, ">>")
+                }
+                return Token.new(TokenType.GT, start_line, start_col, ">")
+            }
+            '&' -> {
+                _advance()
+                if current_char == '&' {
+                    _advance()
+                    if current_char == '=' {
+                        _advance()
+                        return Token.new(TokenType.AND_ASSIGN, start_line, start_col, "&&=")
+                    }
+                    return Token.new(TokenType.AND, start_line, start_col, "&&")
+                }
+                return Token.new(TokenType.BIT_AND, start_line, start_col, "&")
+            }
+            '|' -> {
+                _advance()
+                if current_char == '|' {
+                    _advance()
+                    if current_char == '=' {
+                        _advance()
+                        return Token.new(TokenType.OR_ASSIGN, start_line, start_col, "||=")
+                    }
+                    return Token.new(TokenType.OR, start_line, start_col, "||")
+                }
+                return Token.new(TokenType.PIPE, start_line, start_col, "|")
+            }
+            '^' -> {
+                _advance()
+                return Token.new(TokenType.BIT_XOR, start_line, start_col, "^")
+            }
+            '~' -> {
+                _advance()
+                return Token.new(TokenType.BIT_NOT, start_line, start_col, "~")
+            }
+            '?' -> {
+                _advance()
+                if current_char == '.' {
+                    _advance()
+                    return Token.new(TokenType.OPTIONAL, start_line, start_col, "?.")
+                }
+                return Token.new(TokenType.QUESTION, start_line, start_col, "?")
+            }
+            
+            // String literals
+            '"' -> {
+                value = _read_string('"')
+                return Token.new(TokenType.STRING, start_line, start_col, value)
+            }
+            '\'' -> {
+                value = _read_string('\'')
+                return Token.new(TokenType.STRING, start_line, start_col, value)
+            }
+            
+            // Numbers
+            default -> {
+                if is_digit(current_char) {
+                    return _read_number()
+                }
+                
+                // Identifiers and keywords
+                if is_identifier_start(current_char) {
+                    ident = _read_identifier()
+                    token_type = lookup_identifier(ident)
+                    return Token.new(token_type, start_line, start_col, ident)
+                }
+                
+                // EOF
+                if current_char == 0 {
+                    return Token.new(TokenType.EOF, start_line, start_col, "")
+                }
+                
+                // Illegal character
+                _advance()
+                return Token.new(TokenType.ILLEGAL, start_line, start_col, current_char)
+            }
+        }
+    }
+}
+
+// Test the lexer
+fn test_lexer(source: string) -> void {
+    lexer = Lexer.new(source)
+    
+    print("Lexing source ({len(source)} bytes):")
+    print("---")
+    
+    loop {
+        token = lexer.next_token()
+        print("[{token.line}:{token.column}] {token.type_name()} = '{token.value}'")
+        
+        if token.type == TokenType.EOF {
+            break
+        }
+    }
+}

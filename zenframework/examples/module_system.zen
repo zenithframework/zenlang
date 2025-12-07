@@ -1,0 +1,240 @@
+// Phase 10: Module System Demonstration
+// Import/Export, Package management, Module dependencies
+
+// Module 1: Math Utilities (math_module.zen simulation)
+fun create_math_module() {
+  return {
+    "name": "math_utils",
+    "version": "1.0.0",
+    "functions": {
+      "add": fun(a, b) { return a + b; },
+      "subtract": fun(a, b) { return a - b; },
+      "multiply": fun(a, b) { return a * b; },
+      "divide": fun(a, b) { if (b == 0) return nil; return a / b; }
+    },
+    "exports": ["add", "subtract", "multiply", "divide"]
+  };
+}
+
+// Module 2: String Utilities (string_module.zen simulation)
+fun create_string_module() {
+  return {
+    "name": "string_utils",
+    "version": "1.0.0",
+    "functions": {
+      "length": fun(s) { return s.len(); },
+      "reverse": fun(s) {
+        var result = "";
+        for (var i = s.len() - 1; i >= 0; i = i - 1) {
+          result = result + s.at(i);
+        }
+        return result;
+      },
+      "uppercase": fun(s) { return s; },
+      "lowercase": fun(s) { return s; }
+    },
+    "exports": ["length", "reverse", "uppercase", "lowercase"]
+  };
+}
+
+// Module 3: Validation Utilities (validation_module.zen simulation)
+fun create_validation_module() {
+  return {
+    "name": "validation",
+    "version": "1.0.0",
+    "dependencies": ["string_utils"],
+    "functions": {
+      "is_email": fun(s) {
+        // Placeholder email validation
+        return s.len() > 3;
+      },
+      "is_number": fun(s) {
+        // Placeholder number validation
+        return s.len() > 0;
+      },
+      "is_empty": fun(s) {
+        return s.len() == 0;
+      }
+    },
+    "exports": ["is_email", "is_number", "is_empty"]
+  };
+}
+
+// Module Registry
+fun create_module_registry() {
+  return {
+    "math_utils": create_math_module(),
+    "string_utils": create_string_module(),
+    "validation": create_validation_module()
+  };
+}
+
+// Import mechanism
+fun import_module(registry, module_name) {
+  var module = registry.get(module_name);
+  if (module == nil) {
+    println("Error: Module '" + module_name + "' not found");
+    return nil;
+  }
+  
+  println("Importing module: " + module.get("name") + " v" + module.get("version"));
+  return module;
+}
+
+// Dependency resolver
+fun resolve_dependencies(registry, module_name, resolved) {
+  if (resolved == nil) resolved = [];
+  
+  var module = registry.get(module_name);
+  if (module == nil) return resolved;
+  
+  // Check if already resolved
+  for (var i = 0; i < resolved.len(); i = i + 1) {
+    if (resolved.at(i) == module_name) {
+      return resolved;
+    }
+  }
+  
+  // Resolve dependencies first
+  var deps = module.get("dependencies");
+  if (deps != nil) {
+    for (var i = 0; i < deps.len(); i = i + 1) {
+      resolved = resolve_dependencies(registry, deps.at(i), resolved);
+    }
+  }
+  
+  // Add this module
+  resolved.push(module_name);
+  return resolved;
+}
+
+// Export mechanism
+fun export_function(module, func_name) {
+  var functions = module.get("functions");
+  var exports = module.get("exports");
+  
+  // Check if function is exported
+  for (var i = 0; i < exports.len(); i = i + 1) {
+    if (exports.at(i) == func_name) {
+      return functions.get(func_name);
+    }
+  }
+  
+  println("Error: Function '" + func_name + "' is not exported");
+  return nil;
+}
+
+// Package manifest (package.zen simulation)
+fun create_package_manifest() {
+  return {
+    "name": "zenith-stdlib",
+    "version": "1.0.0",
+    "description": "Standard library for Zenith",
+    "modules": [
+      "math_utils",
+      "string_utils",
+      "validation"
+    ],
+    "dependencies": [],
+    "devDependencies": [],
+    "scripts": {
+      "test": "zen test",
+      "build": "zen build",
+      "publish": "zen publish"
+    }
+  };
+}
+
+// Module loader
+fun load_modules(manifest) {
+  var registry = create_module_registry();
+  var loaded = [];
+  
+  var modules = manifest.get("modules");
+  for (var i = 0; i < modules.len(); i = i + 1) {
+    var mod_name = modules.at(i);
+    var module = import_module(registry, mod_name);
+    if (module != nil) {
+      loaded.push(module);
+    }
+  }
+  
+  return loaded;
+}
+
+// Main demo
+fun main() {
+  println("╔════════════════════════════════════╗");
+  println("║ Phase 10: Module System Demo       ║");
+  println("╚════════════════════════════════════╝");
+  
+  // Create registry
+  var registry = create_module_registry();
+  println("\n[REGISTRY] " + registry.len() + " modules available");
+  
+  // Test 1: Import single module
+  println("\n[TEST 1] Import math_utils module");
+  var math_mod = import_module(registry, "math_utils");
+  if (math_mod != nil) {
+    var add = export_function(math_mod, "add");
+    println("Result of add(10, 5) = " + add(10, 5));
+  }
+  
+  // Test 2: Import string module
+  println("\n[TEST 2] Import string_utils module");
+  var str_mod = import_module(registry, "string_utils");
+  if (str_mod != nil) {
+    var reverse = export_function(str_mod, "reverse");
+    println("Result of reverse('Zenith') = " + reverse("Zenith"));
+  }
+  
+  // Test 3: Dependency resolution
+  println("\n[TEST 3] Resolve dependencies for validation module");
+  var deps = resolve_dependencies(registry, "validation", nil);
+  println("Dependency chain:");
+  for (var i = 0; i < deps.len(); i = i + 1) {
+    println("  " + (i + 1) + ". " + deps.at(i));
+  }
+  
+  // Test 4: Load multiple modules
+  println("\n[TEST 4] Load package manifest");
+  var manifest = create_package_manifest();
+  println("Package: " + manifest.get("name") + " v" + manifest.get("version"));
+  
+  var loaded = load_modules(manifest);
+  println("Loaded " + loaded.len() + " modules:");
+  for (var i = 0; i < loaded.len(); i = i + 1) {
+    var m = loaded.at(i);
+    println("  - " + m.get("name") + " (" + m.get("version") + ")");
+  }
+  
+  // Test 5: Cross-module function calls
+  println("\n[TEST 5] Cross-module operations");
+  var math_funcs = math_mod.get("functions");
+  var multiply = export_function(math_mod, "multiply");
+  var result = multiply(7, 8);
+  println("multiply(7, 8) = " + result);
+  
+  // Test 6: Export validation
+  println("\n[TEST 6] Export validation");
+  var val_mod = import_module(registry, "validation");
+  if (val_mod != nil) {
+    var is_email = export_function(val_mod, "is_email");
+    var is_empty = export_function(val_mod, "is_empty");
+    
+    println("is_email('test@example.com') = " + is_email("test@example.com"));
+    println("is_empty('') = " + is_empty(""));
+    println("is_empty('hello') = " + is_empty("hello"));
+  }
+  
+  println("\n✓ Module system demonstration complete");
+  println("\n[FEATURES DEMONSTRATED]");
+  println("✓ Module creation and registration");
+  println("✓ Import/export mechanism");
+  println("✓ Dependency resolution");
+  println("✓ Package management");
+  println("✓ Module composition");
+  println("✓ Cross-module function calls");
+}
+
+main();

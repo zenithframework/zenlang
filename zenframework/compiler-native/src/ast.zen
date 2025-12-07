@@ -1,0 +1,386 @@
+// Zenith Compiler - Abstract Syntax Tree Nodes
+// File: ast.zen
+// Purpose: Define all AST node types with minimal overhead
+
+import "token.zen"
+
+// Base node type - all AST nodes extend from this
+component ASTNode {
+    node_type: int              // Type identifier
+    line: int                   // Source line
+    column: int                 // Source column
+}
+
+// Node type identifiers
+component NodeType {
+    // Statements
+    const PROGRAM = 1
+    const LET_STMT = 2
+    const CONST_STMT = 3
+    const RETURN_STMT = 4
+    const EXPR_STMT = 5
+    const BLOCK_STMT = 6
+    const IF_STMT = 7
+    const FOR_STMT = 8
+    const WHILE_STMT = 9
+    const BREAK_STMT = 10
+    const CONTINUE_STMT = 11
+    const FUNCTION_STMT = 12
+    const CLASS_STMT = 13
+    const PAGE_STMT = 14
+    const COMPONENT_STMT = 15
+    
+    // Expressions
+    const IDENTIFIER_EXPR = 20
+    const INT_LITERAL = 21
+    const FLOAT_LITERAL = 22
+    const STRING_LITERAL = 23
+    const BOOL_LITERAL = 24
+    const NULL_LITERAL = 25
+    const ARRAY_LITERAL = 26
+    const MAP_LITERAL = 27
+    const PREFIX_EXPR = 28
+    const INFIX_EXPR = 29
+    const CALL_EXPR = 30
+    const INDEX_EXPR = 31
+    const MEMBER_EXPR = 32
+    const ASSIGN_EXPR = 33
+    const TERNARY_EXPR = 34
+    const FUNCTION_EXPR = 35
+    const THIS_EXPR = 36
+    const NEW_EXPR = 37
+    const MATCH_EXPR = 38
+}
+
+// ============================================================================
+// STATEMENTS
+// ============================================================================
+
+component Program extends ASTNode {
+    statements: array[ASTNode]
+}
+
+component LetStatement extends ASTNode {
+    name: string
+    type_hint: string           // Optional type annotation
+    value: ASTNode              // Expression
+}
+
+component ConstStatement extends ASTNode {
+    name: string
+    type_hint: string
+    value: ASTNode
+}
+
+component ReturnStatement extends ASTNode {
+    value: ASTNode              // Can be null for bare return
+}
+
+component ExpressionStatement extends ASTNode {
+    expression: ASTNode
+}
+
+component BlockStatement extends ASTNode {
+    statements: array[ASTNode]
+}
+
+component IfStatement extends ASTNode {
+    condition: ASTNode
+    then_block: BlockStatement
+    else_block: BlockStatement   // Can be null
+}
+
+component ForStatement extends ASTNode {
+    init: ASTNode               // Can be null
+    condition: ASTNode          // Can be null
+    update: ASTNode             // Can be null
+    body: BlockStatement
+}
+
+component WhileStatement extends ASTNode {
+    condition: ASTNode
+    body: BlockStatement
+}
+
+component BreakStatement extends ASTNode {
+    label: string               // Optional label
+}
+
+component ContinueStatement extends ASTNode {
+    label: string               // Optional label
+}
+
+component FunctionStatement extends ASTNode {
+    name: string
+    parameters: array[Parameter]
+    return_type: string         // Optional
+    body: BlockStatement
+    is_async: bool
+}
+
+component Parameter {
+    name: string
+    type_hint: string           // Optional
+    default_value: ASTNode      // Optional
+}
+
+component ClassStatement extends ASTNode {
+    name: string
+    extends_class: string       // Optional parent class
+    properties: array[PropertyDef]
+    methods: array[MethodDef]
+}
+
+component PropertyDef extends ASTNode {
+    name: string
+    type_hint: string
+    visibility: string          // "public", "private", "protected"
+    is_static: bool
+    default_value: ASTNode      // Optional
+}
+
+component MethodDef extends ASTNode {
+    name: string
+    parameters: array[Parameter]
+    return_type: string
+    visibility: string
+    is_static: bool
+    is_async: bool
+    body: BlockStatement
+}
+
+component PageStatement extends ASTNode {
+    name: string
+    routes: array[RouteDef]
+    handlers: array[HandlerDef]
+    layout: ASTNode             // Optional layout component
+}
+
+component RouteDef extends ASTNode {
+    path: string
+    methods: array[string]      // GET, POST, etc.
+    handler: HandlerDef
+}
+
+component HandlerDef extends ASTNode {
+    name: string
+    parameters: array[Parameter]
+    body: BlockStatement
+}
+
+component ComponentStatement extends ASTNode {
+    name: string
+    props: array[PropDef]
+    state: array[StateDef]
+    render: FunctionStatement
+    lifecycle: array[LifecycleHook]
+}
+
+component PropDef extends ASTNode {
+    name: string
+    type_hint: string
+    required: bool
+    default_value: ASTNode      // Optional
+}
+
+component StateDef extends ASTNode {
+    name: string
+    type_hint: string
+    initial_value: ASTNode
+}
+
+component LifecycleHook extends ASTNode {
+    hook_name: string           // "onMount", "onUpdate", "onDestroy"
+    callback: FunctionStatement
+}
+
+// ============================================================================
+// EXPRESSIONS
+// ============================================================================
+
+component Identifier extends ASTNode {
+    name: string
+}
+
+component IntegerLiteral extends ASTNode {
+    value: int
+}
+
+component FloatLiteral extends ASTNode {
+    value: float
+}
+
+component StringLiteral extends ASTNode {
+    value: string
+    is_template: bool           // true for template strings
+}
+
+component BooleanLiteral extends ASTNode {
+    value: bool
+}
+
+component NullLiteral extends ASTNode {
+    // Represents null/undefined
+}
+
+component ArrayLiteral extends ASTNode {
+    elements: array[ASTNode]
+}
+
+component MapLiteral extends ASTNode {
+    pairs: array[MapPair]
+}
+
+component MapPair {
+    key: ASTNode
+    value: ASTNode
+}
+
+component PrefixExpression extends ASTNode {
+    operator: string            // !, -, ~, ++, --
+    operand: ASTNode
+}
+
+component InfixExpression extends ASTNode {
+    operator: string            // +, -, *, /, ==, !=, <, >, &&, ||, etc.
+    left: ASTNode
+    right: ASTNode
+}
+
+component CallExpression extends ASTNode {
+    function: ASTNode           // Function name or expression
+    arguments: array[ASTNode]
+}
+
+component IndexExpression extends ASTNode {
+    object: ASTNode
+    index: ASTNode
+}
+
+component MemberExpression extends ASTNode {
+    object: ASTNode
+    property: string
+    is_optional: bool           // For ?. operator
+}
+
+component AssignmentExpression extends ASTNode {
+    target: ASTNode             // Variable, member, or index
+    operator: string            // =, +=, -=, etc.
+    value: ASTNode
+}
+
+component TernaryExpression extends ASTNode {
+    condition: ASTNode
+    then_expr: ASTNode
+    else_expr: ASTNode
+}
+
+component FunctionExpression extends ASTNode {
+    parameters: array[Parameter]
+    return_type: string         // Optional
+    body: BlockStatement
+    is_async: bool
+    is_arrow: bool              // true for arrow functions
+}
+
+component ThisExpression extends ASTNode {
+    // Represents 'this' keyword
+}
+
+component NewExpression extends ASTNode {
+    class_name: ASTNode
+    arguments: array[ASTNode]
+}
+
+component MatchExpression extends ASTNode {
+    value: ASTNode
+    cases: array[MatchCase]
+    default_case: BlockStatement // Optional
+}
+
+component MatchCase {
+    pattern: ASTNode
+    body: BlockStatement
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+fn create_program(statements: array[ASTNode]) -> Program {
+    return Program {
+        node_type: NodeType.PROGRAM,
+        line: 0,
+        column: 0,
+        statements: statements
+    }
+}
+
+fn create_identifier(name: string, line: int, column: int) -> Identifier {
+    return Identifier {
+        node_type: NodeType.IDENTIFIER_EXPR,
+        line: line,
+        column: column,
+        name: name
+    }
+}
+
+fn create_integer_literal(value: int, line: int, column: int) -> IntegerLiteral {
+    return IntegerLiteral {
+        node_type: NodeType.INT_LITERAL,
+        line: line,
+        column: column,
+        value: value
+    }
+}
+
+fn create_string_literal(value: string, line: int, column: int) -> StringLiteral {
+    return StringLiteral {
+        node_type: NodeType.STRING_LITERAL,
+        line: line,
+        column: column,
+        value: value,
+        is_template: false
+    }
+}
+
+fn create_boolean_literal(value: bool, line: int, column: int) -> BooleanLiteral {
+    return BooleanLiteral {
+        node_type: NodeType.BOOL_LITERAL,
+        line: line,
+        column: column,
+        value: value
+    }
+}
+
+fn create_infix_expression(
+    operator: string,
+    left: ASTNode,
+    right: ASTNode,
+    line: int,
+    column: int
+) -> InfixExpression {
+    return InfixExpression {
+        node_type: NodeType.INFIX_EXPR,
+        line: line,
+        column: column,
+        operator: operator,
+        left: left,
+        right: right
+    }
+}
+
+fn create_prefix_expression(
+    operator: string,
+    operand: ASTNode,
+    line: int,
+    column: int
+) -> PrefixExpression {
+    return PrefixExpression {
+        node_type: NodeType.PREFIX_EXPR,
+        line: line,
+        column: column,
+        operator: operator,
+        operand: operand
+    }
+}

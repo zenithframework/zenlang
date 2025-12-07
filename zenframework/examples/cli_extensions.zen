@@ -1,0 +1,205 @@
+// CLI Extensions and Templates
+// New commands and project generators
+
+// Project template: Basic Hello World
+fun generate_basic_template(name) {
+  println("Creating basic template: " + name);
+  return {
+    "name": name,
+    "type": "basic",
+    "files": {
+      "main.zen": "// Basic Zenith Program\nprintln(\"Hello from " + name + "!\");",
+      "README.md": "# " + name + "\n\nA basic Zenith project.",
+      "config.zen": "// Configuration\nvar config = {\"name\": \"" + name + "\"};"
+    }
+  };
+}
+
+// Project template: Web Application
+fun generate_web_template(name) {
+  println("Creating web app template: " + name);
+  return {
+    "name": name,
+    "type": "web",
+    "files": {
+      "main.zen": "// Web Application\nfun handle_request(req) {\n  return {\"status\": 200, \"body\": \"Hello Web\"};\n}",
+      "routes.zen": "// Route definitions\nvar routes = [\"GET /\", \"POST /api\"];",
+      "server.zen": "// Server configuration\nvar server_config = {\"port\": 8080, \"host\": \"localhost\"};"
+    }
+  };
+}
+
+// Project template: Library
+fun generate_library_template(name) {
+  println("Creating library template: " + name);
+  return {
+    "name": name,
+    "type": "library",
+    "files": {
+      "lib.zen": "// Library exports\nfun public_function(x) { return x * 2; }",
+      "exports.zen": "// Export configuration\nvar exports = [\"public_function\"];",
+      "tests.zen": "// Library tests\nfun test_public_function() { println(\"Testing...\"); }"
+    }
+  };
+}
+
+// Project template: CLI Tool
+fun generate_cli_template(name) {
+  println("Creating CLI tool template: " + name);
+  return {
+    "name": name,
+    "type": "cli-tool",
+    "files": {
+      "main.zen": "// CLI Tool\nfun main(args) {\n  println(\"CLI Tool: " + name + "\");\n  for (var i = 0; i < args.len(); i = i + 1) {\n    println(\"Arg: \" + args.at(i));\n  }\n}",
+      "commands.zen": "// Command definitions\nvar commands = [\"help\", \"run\", \"build\"];",
+      "utils.zen": "// Utility functions\nfun parse_args(args) { return args; }"
+    }
+  };
+}
+
+// List available templates
+fun list_templates() {
+  println("Available Zenith Project Templates:");
+  var templates = [
+    {
+      "name": "basic",
+      "description": "Simple Hello World project",
+      "command": "zen gen-project <name> --template basic"
+    },
+    {
+      "name": "web",
+      "description": "Web application with routing",
+      "command": "zen gen-project <name> --template web"
+    },
+    {
+      "name": "library",
+      "description": "Reusable library with exports",
+      "command": "zen gen-project <name> --template library"
+    },
+    {
+      "name": "cli-tool",
+      "description": "Command-line tool with arguments",
+      "command": "zen gen-project <name> --template cli-tool"
+    }
+  ];
+  
+  for (var i = 0; i < templates.len(); i = i + 1) {
+    var t = templates.at(i);
+    println("\n" + (i + 1) + ". " + t.get("name"));
+    println("   Description: " + t.get("description"));
+    println("   Usage: " + t.get("command"));
+  }
+}
+
+// Generate project from template
+fun generate_project(name, template_type) {
+  var template = nil;
+  
+  if (template_type == "basic") {
+    template = generate_basic_template(name);
+  } else if (template_type == "web") {
+    template = generate_web_template(name);
+  } else if (template_type == "library") {
+    template = generate_library_template(name);
+  } else if (template_type == "cli-tool") {
+    template = generate_cli_template(name);
+  } else {
+    template = generate_basic_template(name);
+  }
+  
+  return template;
+}
+
+// Interactive REPL
+fun interactive_repl() {
+  println("Zenith Interactive REPL");
+  println("Type 'exit' to quit, 'help' for commands");
+  println("================================================");
+  
+  var commands = [
+    {"cmd": "help", "desc": "Show available commands"},
+    {"cmd": "vars", "desc": "List variables"},
+    {"cmd": "exit", "desc": "Exit REPL"},
+    {"cmd": "clear", "desc": "Clear screen"}
+  ];
+  
+  println("\nREPL Commands:");
+  for (var i = 0; i < commands.len(); i = i + 1) {
+    var c = commands.at(i);
+    println("  " + c.get("cmd") + " - " + c.get("desc"));
+  }
+  
+  // Simulate REPL prompt
+  var vars = {"version": "1.0.0", "language": "Zenith"};
+  println("\nRunning REPL...");
+  println(">>> var x = 10");
+  vars.set("x", 10);
+  println(">>> x * 2");
+  println("20");
+  println(">>> exit");
+}
+
+// Code formatter simulation
+fun format_code(code) {
+  println("Formatting code:");
+  println("Input: " + code);
+  // Placeholder for actual formatting
+  var formatted = code;
+  println("Output: " + formatted);
+  return formatted;
+}
+
+// Code linter simulation
+fun lint_code(code) {
+  println("Linting code:");
+  var issues = [];
+  
+  // Placeholder lint checks
+  if (code.len() > 1000) {
+    issues.push("Code is quite long, consider breaking into functions");
+  }
+  
+  if (issues.len() == 0) {
+    println("✓ No issues found");
+  } else {
+    println("Found " + issues.len() + " issue(s):");
+    for (var i = 0; i < issues.len(); i = i + 1) {
+      println("  - " + issues.at(i));
+    }
+  }
+  
+  return issues;
+}
+
+// Main CLI handler
+fun main() {
+  println("╔════════════════════════════════════╗");
+  println("║ Zenith Framework CLI - Phase 8     ║");
+  println("║ Enhanced Commands Demo             ║");
+  println("╚════════════════════════════════════╝");
+  
+  // Demo: List templates
+  println("\n[COMMAND] zen list-templates");
+  list_templates();
+  
+  // Demo: Generate project
+  println("\n[COMMAND] zen gen-project my-app --template web");
+  var project = generate_project("my-app", "web");
+  println("Project created: " + project.get("name"));
+  
+  // Demo: Interactive REPL
+  println("\n[COMMAND] zen run-interactive");
+  interactive_repl();
+  
+  // Demo: Format code
+  println("\n[COMMAND] zen format example.zen");
+  format_code("var x = 10; var y = 20; println(x + y);");
+  
+  // Demo: Lint code
+  println("\n[COMMAND] zen lint example.zen");
+  lint_code("var x = 10; println(x);");
+  
+  println("\n✓ CLI extensions demo complete");
+}
+
+main();

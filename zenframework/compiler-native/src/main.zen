@@ -1,0 +1,334 @@
+// Zenith Compiler - Main CLI Entry Point
+// File: main.zen
+// Purpose: Command-line interface for zen compiler
+
+import "token.zen"
+import "lexer.zen"
+import "parser.zen"
+import "compiler.zen"
+import "code.zen"
+import "vm.zen"
+
+// Main entry point
+fn main(args: array[string]) -> int {
+    if len(args) == 0 {
+        print_usage()
+        return 0
+    }
+    
+    command = args[0]
+    
+    match command {
+        "compile": return cmd_compile(args)
+        "run": return cmd_run(args)
+        "execute": return cmd_execute(args)
+        "build": return cmd_build(args)
+        "version": return cmd_version(args)
+        "help": return cmd_help(args)
+        default: {
+            println("Unknown command: " + command)
+            return 1
+        }
+    }
+}
+
+// compile <file.zen> [output.zbc]
+fn cmd_compile(args: array[string]) -> int {
+    if len(args) < 2 {
+        println("Usage: zen compile <file.zen> [output.zbc]")
+        return 1
+    }
+    
+    input_file = args[1]
+    output_file = len(args) > 2 ? args[2] : replace_extension(input_file, ".zbc")
+    
+    // Read source file
+    source = read_file(input_file)
+    if source == null {
+        println("Error: Cannot read file: " + input_file)
+        return 1
+    }
+    
+    // Compile
+    result = compile(source, input_file)
+    bytecode = result[0]
+    errors = result[1]
+    
+    if len(errors) > 0 {
+        for err in errors {
+            println("Error: " + err)
+        }
+        return 1
+    }
+    
+    // Write bytecode
+    write_bytecode(output_file, bytecode)
+    println("Compiled: " + input_file + " -> " + output_file)
+    
+    return 0
+}
+
+// run <file.zen>
+fn cmd_run(args: array[string]) -> int {
+    if len(args) < 2 {
+        println("Usage: zen run <file.zen>")
+        return 1
+    }
+    
+    source_file = args[1]
+    
+    // Read source
+    source = read_file(source_file)
+    if source == null {
+        println("Error: Cannot read file: " + source_file)
+        return 1
+    }
+    
+    // Compile and run
+    result = compile(source, source_file)
+    bytecode = result[0]
+    errors = result[1]
+    
+    if len(errors) > 0 {
+        for err in errors {
+            println("Error: " + err)
+        }
+        return 1
+    }
+    
+    // Execute
+    vm = create_vm(bytecode)
+    output = execute(vm)
+    
+    return 0
+}
+
+// execute <file.zbc>
+fn cmd_execute(args: array[string]) -> int {
+    if len(args) < 2 {
+        println("Usage: zen execute <file.zbc>")
+        return 1
+    }
+    
+    bytecode_file = args[1]
+    
+    // Load bytecode
+    bytecode = read_bytecode(bytecode_file)
+    if bytecode == null {
+        println("Error: Cannot read bytecode file: " + bytecode_file)
+        return 1
+    }
+    
+    // Execute
+    vm = create_vm(bytecode)
+    output = execute(vm)
+    
+    return 0
+}
+
+// build [project-dir]
+fn cmd_build(args: array[string]) -> int {
+    project_dir = len(args) > 1 ? args[1] : "."
+    
+    println("Building project in: " + project_dir)
+    
+    // Read Zen.toml
+    config_file = project_dir + "/Zen.toml"
+    config = read_file(config_file)
+    if config == null {
+        println("Error: Zen.toml not found")
+        return 1
+    }
+    
+    // Find main.zen
+    main_file = project_dir + "/src/main.zen"
+    source = read_file(main_file)
+    if source == null {
+        println("Error: src/main.zen not found")
+        return 1
+    }
+    
+    // Compile
+    result = compile(source, main_file)
+    bytecode = result[0]
+    errors = result[1]
+    
+    if len(errors) > 0 {
+        for err in errors {
+            println("Error: " + err)
+        }
+        return 1
+    }
+    
+    // Write output
+    output_file = project_dir + "/build/app"
+    write_bytecode(output_file, bytecode)
+    println("Build complete: " + output_file)
+    
+    return 0
+}
+
+// version
+fn cmd_version(args: array[string]) -> int {
+    println("Zenith Compiler 1.0.0")
+    println("Native implementation in Zenith")
+    println("Target: < 500KB binary, < 10MB memory, 5-10x faster")
+    return 0
+}
+
+// help [command]
+fn cmd_help(args: array[string]) -> int {
+    if len(args) > 1 {
+        command = args[1]
+        print_help_for_command(command)
+    } else {
+        print_usage()
+    }
+    return 0
+}
+
+// Print general usage
+fn print_usage() -> void {
+    println("Zenith Compiler - Self-hosting bytecode compiler")
+    println("")
+    println("Usage: zen <command> [options]")
+    println("")
+    println("Commands:")
+    println("  compile <file.zen> [output.zbc]   Compile Zenith source to bytecode")
+    println("  run <file.zen>                     Compile and execute Zenith source")
+    println("  execute <file.zbc>                 Execute pre-compiled bytecode")
+    println("  build [project-dir]                Build entire project")
+    println("  version                            Show version information")
+    println("  help [command]                     Show help for command")
+    println("")
+    println("Examples:")
+    println("  zen compile hello.zen")
+    println("  zen run hello.zen")
+    println("  zen execute hello.zbc")
+    println("  zen build")
+}
+
+// Print help for specific command
+fn print_help_for_command(command: string) -> void {
+    match command {
+        "compile": {
+            println("zen compile <file.zen> [output.zbc]")
+            println("")
+            println("Compile Zenith source code to bytecode")
+            println("")
+            println("Arguments:")
+            println("  file.zen       Input Zenith source file")
+            println("  output.zbc     Output bytecode file (default: <input>.zbc)")
+        }
+        "run": {
+            println("zen run <file.zen>")
+            println("")
+            println("Compile and execute Zenith source code")
+            println("")
+            println("Arguments:")
+            println("  file.zen       Zenith source file to run")
+        }
+        "execute": {
+            println("zen execute <file.zbc>")
+            println("")
+            println("Execute pre-compiled bytecode")
+            println("")
+            println("Arguments:")
+            println("  file.zbc       Compiled bytecode file")
+        }
+        "build": {
+            println("zen build [project-dir]")
+            println("")
+            println("Build entire Zenith project")
+            println("")
+            println("Arguments:")
+            println("  project-dir    Project directory (default: .)")
+            println("")
+            println("Requires:")
+            println("  Zen.toml       Project manifest")
+            println("  src/main.zen   Entry point")
+        }
+        default: {
+            println("Unknown command: " + command)
+        }
+    }
+}
+
+// Helper: Replace file extension
+fn replace_extension(filename: string, new_ext: string) -> string {
+    dot_idx = 0
+    for i = len(filename) - 1; i >= 0; i = i - 1 {
+        if filename[i] == '.' {
+            dot_idx = i
+            break
+        }
+    }
+    
+    if dot_idx > 0 {
+        return filename[0:dot_idx] + new_ext
+    } else {
+        return filename + new_ext
+    }
+}
+
+// Helper: Read file as string
+fn read_file(filename: string) -> string {
+    // Read file using native syscall
+    // Returns null on error, file contents on success
+    return native_file_read(filename)
+}
+
+// Helper: Write bytecode file (binary format)
+fn write_bytecode(filename: string, bytecode: Bytecode) -> bool {
+    // Serialize using bytecode_serialize from code.zen
+    buffer = bytecode_serialize(bytecode)
+    
+    // Write to file
+    return native_file_write(filename, buffer)
+}
+
+// Helper: Read bytecode file (binary format)
+fn read_bytecode(filename: string) -> Bytecode {
+    // Read file
+    buffer = read_file(filename)
+    if buffer == null {
+        return null
+    }
+    
+    // Deserialize using bytecode_deserialize from code.zen
+    return bytecode_deserialize(buffer)
+}
+
+// Print function (builtin)
+fn print(value: any) -> void {
+    native_print(value)
+}
+
+// Println function (builtin)
+fn println(value: any) -> void {
+    print(value)
+    native_println("")
+}
+
+// Native file I/O calls
+fn native_file_read(filename: string) -> string {
+    // BUILTIN: syscall file read
+    // On Windows: ReadFile()
+    // On Unix: read() syscall
+    return null
+}
+
+fn native_file_write(filename: string, content: string) -> bool {
+    // BUILTIN: syscall file write
+    // On Windows: WriteFile()
+    // On Unix: write() syscall
+    return false
+}
+
+fn native_print(value: any) -> void {
+    // BUILTIN: syscall stdout write
+}
+
+fn native_println(text: string) -> void {
+    // BUILTIN: syscall stdout writeline
+}

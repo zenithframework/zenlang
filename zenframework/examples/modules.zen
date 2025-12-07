@@ -1,0 +1,126 @@
+// Example: Modules and Code Organization
+// Demonstrates how to organize code into logical sections (future: actual module system)
+
+// In future versions of Zen, this will use 'import' and 'export' statements
+// For now, we organize using functions and objects
+
+// ========== Math Utilities ==========
+var MathUtils = {
+    PI: 3.14159,
+    
+    square: function(x) {
+        return x * x;
+    },
+    
+    cube: function(x) {
+        return x * x * x;
+    },
+    
+    sqrt: function(x) {
+        if (x < 0) {
+            throw "Cannot take square root of negative number";
+        }
+        // Approximate square root using Newton's method
+        var guess = x / 2;
+        for (var i = 0; i < 10; i = i + 1) {
+            guess = (guess + x / guess) / 2;
+        }
+        return guess;
+    }
+};
+
+// ========== String Utilities ==========
+var StringUtils = {
+    to_upper: function(str) {
+        // Simple uppercase (would need better implementation)
+        return str;
+    },
+    
+    to_lower: function(str) {
+        // Simple lowercase (would need better implementation)
+        return str;
+    },
+    
+    reverse: function(str) {
+        var result = "";
+        for (var i = length(str) - 1; i >= 0; i = i - 1) {
+            result = result + str[i];
+        }
+        return result;
+    },
+    
+    repeat: function(str, times) {
+        var result = "";
+        for (var i = 0; i < times; i = i + 1) {
+            result = result + str;
+        }
+        return result;
+    }
+};
+
+// ========== Array Utilities ==========
+var ArrayUtils = {
+    sum: function(arr) {
+        var total = 0;
+        for (var i = 0; i < length(arr); i = i + 1) {
+            total = total + arr[i];
+        }
+        return total;
+    },
+    
+    average: function(arr) {
+        if (length(arr) == 0) {
+            return 0;
+        }
+        return ArrayUtils.sum(arr) / length(arr);
+    },
+    
+    max: function(arr) {
+        if (length(arr) == 0) {
+            return nil;
+        }
+        var maximum = arr[0];
+        for (var i = 1; i < length(arr); i = i + 1) {
+            if (arr[i] > maximum) {
+                maximum = arr[i];
+            }
+        }
+        return maximum;
+    },
+    
+    min: function(arr) {
+        if (length(arr) == 0) {
+            return nil;
+        }
+        var minimum = arr[0];
+        for (var i = 1; i < length(arr); i = i + 1) {
+            if (arr[i] < minimum) {
+                minimum = arr[i];
+            }
+        }
+        return minimum;
+    }
+};
+
+print("=== Modules and Code Organization Example ===");
+
+print("Math Utilities:");
+print("  PI = ", MathUtils.PI);
+print("  square(5) = ", MathUtils.square(5));
+print("  cube(3) = ", MathUtils.cube(3));
+print("  sqrt(16) = ", MathUtils.sqrt(16));
+
+print("\nString Utilities:");
+var str = "hello";
+print("  reverse('", str, "') = '", StringUtils.reverse(str), "'");
+print("  repeat('ab', 3) = '", StringUtils.repeat("ab", 3), "'");
+
+print("\nArray Utilities:");
+var numbers = [10, 20, 30, 40, 50];
+print("  Array: ", numbers);
+print("  sum = ", ArrayUtils.sum(numbers));
+print("  average = ", ArrayUtils.average(numbers));
+print("  max = ", ArrayUtils.max(numbers));
+print("  min = ", ArrayUtils.min(numbers));
+
+print("=== Done ===");

@@ -1,0 +1,98 @@
+// Performance and Stress Tests
+// Tests performance characteristics and limits
+
+fun test_large_array() {
+  println("Testing large array operations:");
+  var arr = [];
+  
+  // Build array
+  for (var i = 0; i < 1000; i = i + 1) {
+    arr.push(i);
+  }
+  
+  println("Large array created with " + arr.len() + " elements");
+  println("First element: " + arr.at(0));
+  println("Last element: " + arr.at(arr.len() - 1));
+  
+  // Sum all elements
+  var sum = 0;
+  for (var i = 0; i < arr.len(); i = i + 1) {
+    sum = sum + arr.at(i);
+  }
+  println("Sum of 0-999: " + sum);
+}
+
+fun test_deep_recursion() {
+  println("\nTesting deep recursion:");
+  
+  fun count_down(n) {
+    if (n <= 0) return 0;
+    return 1 + count_down(n - 1);
+  }
+  
+  var depth = 100;
+  var result = count_down(depth);
+  println("Recursion depth " + depth + " returned: " + result);
+}
+
+fun test_string_building() {
+  println("\nTesting string building:");
+  
+  var result = "";
+  for (var i = 0; i < 100; i = i + 1) {
+    result = result + "x";
+  }
+  println("Built string of length: " + result.len());
+}
+
+fun test_nested_data_structures() {
+  println("\nTesting nested data structures:");
+  
+  // Nested arrays
+  var nested = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+  ];
+  
+  var sum = 0;
+  for (var i = 0; i < 3; i = i + 1) {
+    var row = nested.at(i);
+    for (var j = 0; j < 3; j = j + 1) {
+      sum = sum + row.at(j);
+    }
+  }
+  println("Sum of 3x3 matrix: " + sum);
+}
+
+fun test_closure_performance() {
+  println("\nTesting closure creation and usage:");
+  
+  fun make_multiplier(n) {
+    return fun(x) {
+      return x * n;
+    };
+  }
+  
+  var double = make_multiplier(2);
+  var triple = make_multiplier(3);
+  
+  println("double(5) = " + double(5));
+  println("triple(5) = " + triple(5));
+  
+  // Array of closures
+  var multipliers = [double, triple, make_multiplier(4)];
+  for (var i = 0; i < multipliers.len(); i = i + 1) {
+    var m = multipliers.at(i);
+    println("multiplier " + i + " of 10 = " + m(10));
+  }
+}
+
+// Main execution
+test_large_array();
+test_deep_recursion();
+test_string_building();
+test_nested_data_structures();
+test_closure_performance();
+
+println("\n✓ All performance tests completed");

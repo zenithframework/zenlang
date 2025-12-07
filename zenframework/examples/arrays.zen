@@ -1,0 +1,53 @@
+// Example: Arrays
+// Demonstrates array creation, access, modification, and iteration
+
+print("=== Arrays Example ===");
+
+// Create an array
+var numbers = [1, 2, 3, 4, 5];
+print("Numbers: ", numbers);
+
+// Access array elements
+print("First element: ", numbers[0]);
+print("Third element: ", numbers[2]);
+print("Last element: ", numbers[4]);
+
+// Modify array elements
+numbers[0] = 10;
+numbers[2] = 30;
+print("Modified: ", numbers);
+
+// Create an array with mixed types
+var mixed = [42, "hello", true, nil, 3.14];
+print("Mixed array: ", mixed);
+
+// Array length
+var arr = [10, 20, 30];
+print("Array length: ", length(arr));
+
+// Iterate with for loop
+print("\nIterating over array:");
+for (var i = 0; i < length(numbers); i = i + 1) {
+    print("  numbers[", i, "] = ", numbers[i]);
+}
+
+// Array of arrays (2D array)
+var matrix = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+];
+
+print("\nMatrix: ", matrix);
+print("matrix[0][1] = ", matrix[0][1]);
+print("matrix[2][2] = ", matrix[2][2]);
+
+// Iterate over 2D array
+print("\nMatrix contents:");
+for (var row = 0; row < length(matrix); row = row + 1) {
+    for (var col = 0; col < length(matrix[row]); col = col + 1) {
+        print("  [", row, "][", col, "] = ", matrix[row][col]);
+    }
+}
+
+print("=== Done ===");

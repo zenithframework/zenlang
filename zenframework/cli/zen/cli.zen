@@ -1,0 +1,462 @@
+// Zenith CLI - Command Line Interface
+// Owner: Zenith Framework
+// Pure Zenith implementation with no Python dependencies
+
+// Command enumeration
+const cmd_help = "help"
+const cmd_compile = "compile"
+const cmd_execute = "execute"
+const cmd_build = "build"
+const cmd_test = "test"
+const cmd_run = "run"
+const cmd_new = "new"
+const cmd_version = "version"
+
+// Exit codes
+const exit_ok = 0
+const exit_error = 1
+const exit_usage = 2
+
+// CLI State
+struct CLIState
+    command: string
+    args: array[string]
+    options: map[string]string
+    verbose: bool
+    output_file: string
+    input_file: string
+end
+
+// Parse command line arguments
+fn parse_args(args: array[string]) -> CLIState
+    mut state = CLIState{
+        command: "",
+        args: [],
+        options: {},
+        verbose: false,
+        output_file: "",
+        input_file: ""
+    }
+    
+    if len(args) == 0
+        return state
+    end
+    
+    // First argument is the command
+    state.command = args[0]
+    
+    mut i = 1
+    while i < len(args)
+        mut arg = args[i]
+        
+        if arg == "-v" or arg == "--verbose"
+            state.verbose = true
+        elif arg == "-o" or arg == "--output"
+            i = i + 1
+            if i < len(args)
+                state.output_file = args[i]
+            end
+        elif arg == "-i" or arg == "--input"
+            i = i + 1
+            if i < len(args)
+                state.input_file = args[i]
+            end
+        else
+            state.args.push(arg)
+        end
+        
+        i = i + 1
+    end
+    
+    return state
+end
+
+// Print help message
+fn print_help()
+    print("Zenith Framework CLI v1.0")
+    print("")
+    print("USAGE:")
+    print("    zen [COMMAND] [OPTIONS] [ARGS]")
+    print("")
+    print("COMMANDS:")
+    print("    compile <file.zen>           Compile Zenith source to bytecode")
+    print("    execute <file.zbc>           Execute compiled bytecode")
+    print("    build <project>              Build Zenith project")
+    print("    run <file.zen>               Compile and execute in one step")
+    print("    test <test-dir>              Run test suite")
+    print("    new <project-name>           Create new Zenith project")
+    print("    version                      Show version information")
+    print("    help                         Show this help message")
+    print("")
+    print("OPTIONS:")
+    print("    -v, --verbose                Enable verbose output")
+    print("    -o, --output FILE            Output file name")
+    print("    -i, --input FILE             Input file name")
+    print("")
+    print("EXAMPLES:")
+    print("    zen compile hello.zen")
+    print("    zen run hello.zen")
+    print("    zen build my-project")
+    print("    zen new my-app")
+end
+
+// Print version
+fn print_version()
+    print("Zenith Framework v1.0.0")
+    print("Compiler: Pure Zenith (No Python)")
+    print("License: MIT")
+end
+
+// Compile command - Zenith source to bytecode
+fn cmd_compile(input_file: string, output_file: string, verbose: bool) -> int
+    if verbose
+        print("Compiling: " + input_file)
+    end
+    
+    // Read source file
+    mut source = ""
+    mut file = open(input_file, "r")
+    if file == null
+        print("ERROR: Cannot open file: " + input_file)
+        return exit_error
+    end
+    
+    source = read_all(file)
+    close(file)
+    
+    if verbose
+        print("Source size: " + len(source) + " bytes")
+    end
+    
+    // Tokenize
+    if verbose
+        print("Lexing...")
+    end
+    mut lexer = Lexer.new(source)
+    mut tokens = []
+    loop
+        mut token = lexer.next_token()
+        tokens.push(token)
+        if token.type == TokenType.EOF
+            break
+        end
+    end
+    
+    if verbose
+        print("Tokens: " + len(tokens))
+    end
+    
+    // Parse
+    if verbose
+        print("Parsing...")
+    end
+    mut parser = Parser.new(tokens)
+    mut program = parser.parse()
+    
+    if len(parser.errors) > 0
+        print("Parse errors:")
+        for error in parser.errors
+            print("  ERROR: " + error)
+        end
+        return exit_error
+    end
+    
+    if verbose
+        print("AST nodes: " + count_ast_nodes(program))
+    end
+    
+    // Compile to bytecode
+    if verbose
+        print("Compiling to bytecode...")
+    end
+    mut compiler = Compiler.new()
+    mut bytecode = compiler.compile(program)
+    
+    if len(compiler.errors) > 0
+        print("Compile errors:")
+        for error in compiler.errors
+            print("  ERROR: " + error)
+        end
+        return exit_error
+    end
+    
+    // Write bytecode file
+    mut out = output_file
+    if out == ""
+        out = replace_extension(input_file, ".zbc")
+    end
+    
+    if verbose
+        print("Writing bytecode: " + out)
+    end
+    
+    mut outfile = open(out, "w")
+    if outfile == null
+        print("ERROR: Cannot write file: " + out)
+        return exit_error
+    end
+    
+    write(outfile, bytecode)
+    close(outfile)
+    
+    if verbose
+        print("SUCCESS: Compiled to " + out)
+    end
+    
+    return exit_ok
+end
+
+// Execute command - Run compiled bytecode
+fn cmd_execute(bytecode_file: string, verbose: bool) -> int
+    if verbose
+        print("Executing: " + bytecode_file)
+    end
+    
+    // Read bytecode
+    mut file = open(bytecode_file, "r")
+    if file == null
+        print("ERROR: Cannot open file: " + bytecode_file)
+        return exit_error
+    end
+    
+    mut bytecode = read_all(file)
+    close(file)
+    
+    // Execute
+    mut vm = VM.new()
+    if verbose
+        vm.enable_profiling()
+    end
+    
+    mut result = vm.execute(bytecode)
+    
+    if verbose
+        print("Execution time: " + vm.execution_time_ms() + "ms")
+        print("Instructions: " + vm.instruction_count())
+    end
+    
+    return exit_ok
+end
+
+// Run command - Compile and execute
+fn cmd_run(input_file: string, verbose: bool) -> int
+    mut temp_bytecode = ".zenith_temp.zbc"
+    
+    // Compile
+    mut compile_result = cmd_compile(input_file, temp_bytecode, verbose)
+    if compile_result != exit_ok
+        return compile_result
+    end
+    
+    // Execute
+    mut execute_result = cmd_execute(temp_bytecode, verbose)
+    
+    // Clean up temp file
+    delete_file(temp_bytecode)
+    
+    return execute_result
+end
+
+// Build command - Build project
+fn cmd_build(project: string, verbose: bool) -> int
+    if verbose
+        print("Building project: " + project)
+    end
+    
+    // Look for Zen.toml
+    mut config_file = project + "/Zen.toml"
+    mut config = null
+    
+    if file_exists(config_file)
+        if verbose
+            print("Found configuration: " + config_file)
+        end
+        config = parse_toml(config_file)
+    end
+    
+    // Find all .zen files in project/src
+    mut src_dir = project + "/src"
+    mut zen_files = find_files(src_dir, "*.zen")
+    
+    if len(zen_files) == 0
+        print("ERROR: No .zen files found in " + src_dir)
+        return exit_error
+    end
+    
+    if verbose
+        print("Found " + len(zen_files) + " source files")
+    end
+    
+    // Compile each file
+    for zen_file in zen_files
+        if verbose
+            print("Compiling: " + zen_file)
+        end
+        
+        mut output = replace_extension(zen_file, ".zbc")
+        mut result = cmd_compile(zen_file, output, false)
+        
+        if result != exit_ok
+            return result
+        end
+    end
+    
+    if verbose
+        print("SUCCESS: Build complete")
+    end
+    
+    return exit_ok
+end
+
+// New command - Create new project
+fn cmd_new(project_name: string, verbose: bool) -> int
+    if verbose
+        print("Creating new project: " + project_name)
+    end
+    
+    // Create directories
+    create_directory(project_name)
+    create_directory(project_name + "/src")
+    create_directory(project_name + "/tests")
+    create_directory(project_name + "/build")
+    
+    // Create Zen.toml
+    mut toml_content = "[project]\n"
+    toml_content = toml_content + "name = \"" + project_name + "\"\n"
+    toml_content = toml_content + "version = \"0.1.0\"\n"
+    toml_content = toml_content + "author = \"\"\n"
+    toml_content = toml_content + "\n"
+    toml_content = toml_content + "[compiler]\n"
+    toml_content = toml_content + "target = \"bytecode\"\n"
+    
+    mut toml_file = open(project_name + "/Zen.toml", "w")
+    write(toml_file, toml_content)
+    close(toml_file)
+    
+    // Create main.zen
+    mut main_content = "// " + project_name + " - Main entry point\n\n"
+    main_content = main_content + "fn main()\n"
+    main_content = main_content + "    print(\"Hello from Zenith!\")\n"
+    main_content = main_content + "end\n"
+    
+    mut main_file = open(project_name + "/src/main.zen", "w")
+    write(main_file, main_content)
+    close(main_file)
+    
+    if verbose
+        print("SUCCESS: Project created in " + project_name)
+    end
+    
+    return exit_ok
+end
+
+// Test command - Run tests
+fn cmd_test(test_dir: string, verbose: bool) -> int
+    if verbose
+        print("Running tests from: " + test_dir)
+    end
+    
+    mut test_files = find_files(test_dir, "*_test.zen")
+    
+    if len(test_files) == 0
+        print("No test files found in " + test_dir)
+        return exit_ok
+    end
+    
+    mut passed = 0
+    mut failed = 0
+    
+    for test_file in test_files
+        if verbose
+            print("Running: " + test_file)
+        end
+        
+        mut result = cmd_run(test_file, false)
+        if result == exit_ok
+            passed = passed + 1
+        else
+            failed = failed + 1
+        end
+    end
+    
+    print("Tests: " + passed + " passed, " + failed + " failed")
+    
+    if failed > 0
+        return exit_error
+    end
+    
+    return exit_ok
+end
+
+// Main entry point
+fn main(args: array[string]) -> int
+    mut cli = parse_args(args)
+    
+    if cli.command == "" or cli.command == "help"
+        print_help()
+        return exit_ok
+    end
+    
+    if cli.command == "version"
+        print_version()
+        return exit_ok
+    end
+    
+    if cli.command == "compile"
+        if len(cli.args) == 0
+            print("ERROR: Missing input file")
+            print("Usage: zen compile <file.zen>")
+            return exit_usage
+        end
+        return cmd_compile(cli.args[0], cli.output_file, cli.verbose)
+    end
+    
+    if cli.command == "execute"
+        if len(cli.args) == 0
+            print("ERROR: Missing bytecode file")
+            print("Usage: zen execute <file.zbc>")
+            return exit_usage
+        end
+        return cmd_execute(cli.args[0], cli.verbose)
+    end
+    
+    if cli.command == "run"
+        if len(cli.args) == 0
+            print("ERROR: Missing source file")
+            print("Usage: zen run <file.zen>")
+            return exit_usage
+        end
+        return cmd_run(cli.args[0], cli.verbose)
+    end
+    
+    if cli.command == "build"
+        if len(cli.args) == 0
+            print("ERROR: Missing project name")
+            print("Usage: zen build <project>")
+            return exit_usage
+        end
+        return cmd_build(cli.args[0], cli.verbose)
+    end
+    
+    if cli.command == "new"
+        if len(cli.args) == 0
+            print("ERROR: Missing project name")
+            print("Usage: zen new <project-name>")
+            return exit_usage
+        end
+        return cmd_new(cli.args[0], cli.verbose)
+    end
+    
+    if cli.command == "test"
+        if len(cli.args) == 0
+            print("ERROR: Missing test directory")
+            print("Usage: zen test <test-dir>")
+            return exit_usage
+        end
+        return cmd_test(cli.args[0], cli.verbose)
+    end
+    
+    print("ERROR: Unknown command: " + cli.command)
+    print("Try 'zen help' for usage")
+    return exit_usage
+end

@@ -1,0 +1,710 @@
+// Zenith Compiler - Virtual Machine
+// File: vm.zen
+// Purpose: Stack-based bytecode interpreter with 36 opcodes
+// Performance target: > 100M instructions/second
+
+import "code.zen"
+
+// Value type tags
+component ValueType {
+    const NULL_TYPE = 0
+    const INTEGER = 1
+    const FLOAT = 2
+    const STRING = 3
+    const BOOLEAN = 4
+    const ARRAY = 5
+    const MAP = 6
+    const FUNCTION = 7
+    const CLASS = 8
+    const INSTANCE = 9
+}
+
+// Runtime value (tagged union)
+component Value {
+    tag: int                       // ValueType
+    int_val: int                   // Integer value
+    float_val: float               // Float value
+    string_val: string             // String value
+    bool_val: bool                 // Boolean value
+    array_val: array[any]          // Array elements
+    map_val: map[string, any]      // Map key-value pairs
+    func_idx: int                  // Function index
+}
+
+// Call frame for function calls
+component CallFrame {
+    function_idx: int              // Function bytecode index
+    instruction_ptr: int           // Instruction pointer in bytecode
+    local_count: int               // Number of local variables
+    local_start: int               // Start index in VM stack
+}
+
+// Virtual machine
+component VM {
+    stack: array[Value]            // Operand stack
+    call_stack: array[CallFrame]   // Function call stack
+    locals: array[Value]           // Local variables
+    constants: array[any]          // Constant pool
+    bytecode: array[Instruction]   // Instructions
+    functions: array[Bytecode]     // Function bytecodes
+    ip: int                        // Instruction pointer
+    sp: int                        // Stack pointer
+    exception_stack: array[ExceptionFrame]  // Exception handler frames
+    current_exception: Exception   // Current exception (null if none)
+    exception_caught: bool         // True if exception was caught
+    profiling: map[string, int]    // Performance metrics
+}
+
+// Create new VM
+fn create_vm(bytecode: Bytecode) -> VM {
+    vm = VM {
+        stack: [],
+        call_stack: [],
+        locals: [],
+        constants: bytecode.constants,
+        bytecode: bytecode.instructions,
+        functions: bytecode.functions,
+        ip: 0,
+        sp: 0,
+        profiling: {}
+    }
+    
+    // Pre-allocate stack (performance optimization)
+    for i = 0; i < 10000; i = i + 1 {
+        push(vm.stack, null_value())
+    }
+    
+    return vm
+}
+
+// Create null value
+fn null_value() -> Value {
+    return Value {
+        tag: ValueType.NULL_TYPE,
+        int_val: 0,
+        float_val: 0.0,
+        string_val: "",
+        bool_val: false,
+        array_val: [],
+        map_val: {},
+        func_idx: 0
+    }
+}
+
+// Create integer value
+fn int_value(v: int) -> Value {
+    val = null_value()
+    val.tag = ValueType.INTEGER
+    val.int_val = v
+    return val
+}
+
+// Create float value
+fn float_value(v: float) -> Value {
+    val = null_value()
+    val.tag = ValueType.FLOAT
+    val.float_val = v
+    return val
+}
+
+// Create string value
+fn string_value(v: string) -> Value {
+    val = null_value()
+    val.tag = ValueType.STRING
+    val.string_val = v
+    return val
+}
+
+// Create boolean value
+fn bool_value(v: bool) -> Value {
+    val = null_value()
+    val.tag = ValueType.BOOLEAN
+    val.bool_val = v
+    return val
+}
+
+// Create array value
+fn array_value(v: array[any]) -> Value {
+    val = null_value()
+    val.tag = ValueType.ARRAY
+    val.array_val = v
+    return val
+}
+
+// Create map value
+fn map_value(v: map[string, any]) -> Value {
+    val = null_value()
+    val.tag = ValueType.MAP
+    val.map_val = v
+    return val
+}
+
+// Push value to stack
+fn push_stack(vm: VM, val: Value) -> void {
+    if vm.sp >= len(vm.stack) {
+        push(vm.stack, val)
+    } else {
+        vm.stack[vm.sp] = val
+    }
+    vm.sp = vm.sp + 1
+}
+
+// Pop value from stack
+fn pop_stack(vm: VM) -> Value {
+    if vm.sp > 0 {
+        vm.sp = vm.sp - 1
+        return vm.stack[vm.sp]
+    }
+    return null_value()
+}
+
+// Peek top of stack
+fn peek_stack(vm: VM) -> Value {
+    if vm.sp > 0 {
+        return vm.stack[vm.sp - 1]
+    }
+    return null_value()
+}
+
+// Check if value is truthy
+fn is_truthy(val: Value) -> bool {
+    match val.tag {
+        ValueType.NULL_TYPE: return false
+        ValueType.BOOLEAN: return val.bool_val
+        ValueType.INTEGER: return val.int_val != 0
+        ValueType.FLOAT: return val.float_val != 0.0
+        ValueType.STRING: return len(val.string_val) > 0
+        ValueType.ARRAY: return len(val.array_val) > 0
+        ValueType.MAP: return len(val.map_val) > 0
+        default: return true
+    }
+}
+
+// Check if two values are equal
+fn values_equal(a: Value, b: Value) -> bool {
+    if a.tag != b.tag {
+        return false
+    }
+    
+    match a.tag {
+        ValueType.NULL_TYPE: return true
+        ValueType.INTEGER: return a.int_val == b.int_val
+        ValueType.FLOAT: return a.float_val == b.float_val
+        ValueType.STRING: return a.string_val == b.string_val
+        ValueType.BOOLEAN: return a.bool_val == b.bool_val
+        default: return false
+    }
+}
+
+// Convert value to string
+fn value_to_string(val: Value) -> string {
+    match val.tag {
+        ValueType.NULL_TYPE: return "null"
+        ValueType.INTEGER: return string(val.int_val)
+        ValueType.FLOAT: return string(val.float_val)
+        ValueType.STRING: return val.string_val
+        ValueType.BOOLEAN: return val.bool_val ? "true" : "false"
+        ValueType.ARRAY: return "<array>"
+        ValueType.MAP: return "<map>"
+        ValueType.FUNCTION: return "<function>"
+        default: return "<unknown>"
+    }
+}
+
+// Power function
+fn power(base: int, exp: int) -> int {
+    if exp <= 0 { return 1 }
+    result = 1
+    for i = 0; i < exp; i = i + 1 {
+        result = result * base
+    }
+    return result
+}
+
+// Main execution loop
+fn execute(vm: VM) -> Value {
+    vm.ip = 0
+    start_time = now_ms()
+    
+    for {
+        if vm.ip >= len(vm.bytecode) {
+            break
+        }
+        
+        instr = vm.bytecode[vm.ip]
+        opcode = instr.opcode
+        
+        // Profiling: Record opcode execution
+        profile_start = now_ms()
+        
+        // Execute opcode
+        match opcode {
+            // Constants
+            OpCode.CONSTANT: {
+                const_idx = instr.operand1
+                val = vm.constants[const_idx]
+                if val == null {
+                    push_stack(vm, null_value())
+                } else if get_type(val) == "int" {
+                    push_stack(vm, int_value(val))
+                } else if get_type(val) == "float" {
+                    push_stack(vm, float_value(val))
+                } else if get_type(val) == "string" {
+                    push_stack(vm, string_value(val))
+                } else {
+                    push_stack(vm, null_value())
+                }
+            }
+            OpCode.TRUE: push_stack(vm, bool_value(true))
+            OpCode.FALSE: push_stack(vm, bool_value(false))
+            OpCode.NULL: push_stack(vm, null_value())
+            OpCode.UNDEFINED: push_stack(vm, null_value())
+            
+            // Variables
+            OpCode.GET_LOCAL: {
+                local_idx = instr.operand1
+                if local_idx < len(vm.locals) {
+                    push_stack(vm, vm.locals[local_idx])
+                }
+            }
+            OpCode.SET_LOCAL: {
+                local_idx = instr.operand1
+                val = pop_stack(vm)
+                while len(vm.locals) <= local_idx {
+                    push(vm.locals, null_value())
+                }
+                vm.locals[local_idx] = val
+            }
+            OpCode.GET_GLOBAL: {
+                push_stack(vm, null_value())  // TODO: Implement globals
+            }
+            OpCode.SET_GLOBAL: {
+                pop_stack(vm)  // TODO: Implement globals
+            }
+            
+            // Collections
+            OpCode.ARRAY: {
+                count = instr.operand1
+                arr = []
+                for i = 0; i < count; i = i + 1 {
+                    push(arr, pop_stack(vm))
+                }
+                push_stack(vm, array_value(arr))
+            }
+            OpCode.MAP: {
+                count = instr.operand1
+                m = {}
+                for i = 0; i < count; i = i + 1 {
+                    val = pop_stack(vm)
+                    key = pop_stack(vm)
+                    m[value_to_string(key)] = val
+                }
+                push_stack(vm, map_value(m))
+            }
+            OpCode.INDEX: {
+                idx = pop_stack(vm)
+                obj = pop_stack(vm)
+                if obj.tag == ValueType.ARRAY {
+                    idx_int = idx.int_val
+                    if idx_int >= 0 && idx_int < len(obj.array_val) {
+                        push_stack(vm, obj.array_val[idx_int])
+                    } else {
+                        push_stack(vm, null_value())
+                    }
+                } else if obj.tag == ValueType.MAP {
+                    key = value_to_string(idx)
+                    if key in obj.map_val {
+                        push_stack(vm, obj.map_val[key])
+                    } else {
+                        push_stack(vm, null_value())
+                    }
+                }
+            }
+            OpCode.SET_INDEX: {
+                val = pop_stack(vm)
+                idx = pop_stack(vm)
+                obj = pop_stack(vm)
+                if obj.tag == ValueType.ARRAY {
+                    idx_int = idx.int_val
+                    while len(obj.array_val) <= idx_int {
+                        push(obj.array_val, null_value())
+                    }
+                    obj.array_val[idx_int] = val
+                } else if obj.tag == ValueType.MAP {
+                    obj.map_val[value_to_string(idx)] = val
+                }
+            }
+            OpCode.LEN: {
+                val = pop_stack(vm)
+                if val.tag == ValueType.STRING {
+                    push_stack(vm, int_value(len(val.string_val)))
+                } else if val.tag == ValueType.ARRAY {
+                    push_stack(vm, int_value(len(val.array_val)))
+                } else if val.tag == ValueType.MAP {
+                    push_stack(vm, int_value(len(val.map_val)))
+                }
+            }
+            
+            // Arithmetic
+            OpCode.ADD: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val + b.int_val))
+                } else if a.tag == ValueType.FLOAT || b.tag == ValueType.FLOAT {
+                    af = a.tag == ValueType.FLOAT ? a.float_val : float(a.int_val)
+                    bf = b.tag == ValueType.FLOAT ? b.float_val : float(b.int_val)
+                    push_stack(vm, float_value(af + bf))
+                } else if a.tag == ValueType.STRING || b.tag == ValueType.STRING {
+                    as = value_to_string(a)
+                    bs = value_to_string(b)
+                    push_stack(vm, string_value(as + bs))
+                }
+            }
+            OpCode.SUBTRACT: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val - b.int_val))
+                } else {
+                    af = a.tag == ValueType.FLOAT ? a.float_val : float(a.int_val)
+                    bf = b.tag == ValueType.FLOAT ? b.float_val : float(b.int_val)
+                    push_stack(vm, float_value(af - bf))
+                }
+            }
+            OpCode.MULTIPLY: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val * b.int_val))
+                } else {
+                    af = a.tag == ValueType.FLOAT ? a.float_val : float(a.int_val)
+                    bf = b.tag == ValueType.FLOAT ? b.float_val : float(b.int_val)
+                    push_stack(vm, float_value(af * bf))
+                }
+            }
+            OpCode.DIVIDE: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if b.int_val == 0 {
+                    push_stack(vm, null_value())
+                } else if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val / b.int_val))
+                } else {
+                    af = a.tag == ValueType.FLOAT ? a.float_val : float(a.int_val)
+                    bf = b.tag == ValueType.FLOAT ? b.float_val : float(b.int_val)
+                    push_stack(vm, float_value(af / bf))
+                }
+            }
+            OpCode.MODULO: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val % b.int_val))
+                }
+            }
+            OpCode.POWER: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(power(a.int_val, b.int_val)))
+                }
+            }
+            
+            // Comparison
+            OpCode.EQUAL: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                push_stack(vm, bool_value(values_equal(a, b)))
+            }
+            OpCode.NOT_EQUAL: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                push_stack(vm, bool_value(!values_equal(a, b)))
+            }
+            OpCode.LESS: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, bool_value(a.int_val < b.int_val))
+                }
+            }
+            OpCode.LESS_EQUAL: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, bool_value(a.int_val <= b.int_val))
+                }
+            }
+            OpCode.GREATER: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, bool_value(a.int_val > b.int_val))
+                }
+            }
+            OpCode.GREATER_EQUAL: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, bool_value(a.int_val >= b.int_val))
+                }
+            }
+            
+            // Logical
+            OpCode.AND: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                push_stack(vm, bool_value(is_truthy(a) && is_truthy(b)))
+            }
+            OpCode.OR: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                push_stack(vm, bool_value(is_truthy(a) || is_truthy(b)))
+            }
+            OpCode.NOT: {
+                a = pop_stack(vm)
+                push_stack(vm, bool_value(!is_truthy(a)))
+            }
+            
+            // Bitwise
+            OpCode.BIT_AND: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val & b.int_val))
+                }
+            }
+            OpCode.BIT_OR: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val | b.int_val))
+                }
+            }
+            OpCode.BIT_XOR: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val ^ b.int_val))
+                }
+            }
+            OpCode.BIT_NOT: {
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(~a.int_val))
+                }
+            }
+            OpCode.LEFT_SHIFT: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val << b.int_val))
+                }
+            }
+            OpCode.RIGHT_SHIFT: {
+                b = pop_stack(vm)
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER && b.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(a.int_val >> b.int_val))
+                }
+            }
+            
+            // Unary
+            OpCode.NEGATE: {
+                a = pop_stack(vm)
+                if a.tag == ValueType.INTEGER {
+                    push_stack(vm, int_value(-a.int_val))
+                } else if a.tag == ValueType.FLOAT {
+                    push_stack(vm, float_value(-a.float_val))
+                }
+            }
+            
+            // Control Flow
+            OpCode.JUMP: {
+                vm.ip = instr.operand1
+                continue
+            }
+            OpCode.JUMP_IF_FALSE: {
+                val = pop_stack(vm)
+                if !is_truthy(val) {
+                    vm.ip = instr.operand1
+                    continue
+                }
+            }
+            OpCode.JUMP_IF_TRUE: {
+                val = pop_stack(vm)
+                if is_truthy(val) {
+                    vm.ip = instr.operand1
+                    continue
+                }
+            }
+            
+            // Functions
+            OpCode.CALL: {
+                arg_count = instr.operand1
+                // Pop arguments (already on stack)
+                // Pop function reference
+                fn_val = pop_stack(vm)
+                // For now, just return null
+                push_stack(vm, null_value())
+            }
+            OpCode.RETURN: {
+                return pop_stack(vm)
+            }
+            OpCode.POP: {
+                pop_stack(vm)
+            }
+            
+            // Exception handling
+            OpCode.THROW: {
+                // Pop exception value from stack and throw it
+                exc_val = pop_stack(vm)
+                exception = {
+                    type_name: get_type(exc_val),
+                    message: value_to_string(exc_val),
+                    stack_trace: [],
+                    cause: null
+                }
+                vm.current_exception = exception
+                // Unwind call stack to find catch handler
+                // (handled after match statement)
+            }
+            
+            OpCode.TRY: {
+                // Push exception frame (operand1 = catch target, operand2 = finally target)
+                frame = {
+                    try_start: vm.ip,
+                    catch_start: instr.operand1,
+                    catch_end: instr.operand2,
+                    finally_start: instr.operand2,
+                    finally_end: instr.operand3,
+                    scope_depth: vm.sp,
+                    exception_var: ""
+                }
+                append_exception_frame(vm.exception_stack, frame)
+            }
+            
+            OpCode.CATCH: {
+                // Pop exception frame and store exception in local
+                if len(vm.exception_stack) > 0 {
+                    frame = pop_exception_frame(vm.exception_stack)
+                    // Store exception in variable (operand1 = local index)
+                    vm.locals[instr.operand1] = vm.current_exception
+                    vm.exception_caught = true
+                }
+            }
+            
+            OpCode.FINALLY: {
+                // Execute finally block, preserve exception state
+                // (no-op at VM level; compiler handles structure)
+                // Just continue to next instruction
+            }
+            
+            // Halt
+            OpCode.HALT: {
+                break
+            }
+            
+            default: {
+                // Unknown opcode
+            }
+        }
+        
+        vm.ip = vm.ip + 1
+    }
+    
+    return pop_stack(vm)
+}
+
+// Get type name of value
+fn get_type(val: any) -> string {
+    // Simplified type checking
+    if val == null { return "null" }
+    return "unknown"
+}
+
+// Helper: Push exception frame onto exception stack
+fn append_exception_frame(stack: array[ExceptionFrame], frame: ExceptionFrame) -> void {
+    // Append frame to exception stack (builtin array operation)
+    // stack[len(stack)] = frame
+}
+
+// Helper: Pop exception frame from exception stack
+fn pop_exception_frame(stack: array[ExceptionFrame]) -> ExceptionFrame {
+    // Remove and return last frame
+    // len = len(stack)
+    // frame = stack[len-1]
+    // stack = stack[0:len-1]
+    // return frame
+    
+    return null  // Placeholder
+}
+
+// Helper: Create exception value
+fn create_exception(type_name: string, message: string) -> Exception {
+    return {
+        type_name: type_name,
+        message: message,
+        stack_trace: [],
+        cause: null
+    }
+}
+
+// Helper: Unwind call stack on exception
+fn unwind_exception(vm: VM) -> void {
+    // When exception occurs, unwind call stack to find catch handler
+    // Pop call frames until we find ExceptionFrame with matching catch target
+    
+    while len(vm.call_stack) > 0 {
+        frame = pop_call_frame(vm.call_stack)
+        
+        if len(vm.exception_stack) > 0 {
+            exc_frame = vm.exception_stack[len(vm.exception_stack) - 1]
+            // Jump to catch handler
+            vm.ip = exc_frame.catch_start
+            return
+        }
+    }
+    
+    // No catch handler found, propagate to top level
+}
+
+// Helper: Pop call frame
+fn pop_call_frame(stack: array[CallFrame]) -> CallFrame {
+    // Remove and return last frame
+    return null  // Placeholder
+}
+
+// Profiling helpers
+
+// Get current time in milliseconds
+fn now_ms() -> float {
+    // BUILTIN: Return current system time in milliseconds
+    return 0.0  // Placeholder
+}
+
+// Record opcode execution time
+fn record_opcode_time(vm: VM, opcode: int, elapsed: float) -> void {
+    // Update ProfileData counters
+    // vm.profiling[opcode].time += elapsed
+    // vm.profiling[opcode].count += 1
+}
+
+// Get opcode statistics
+fn get_opcode_stats(vm: VM, opcode: int) -> map[string, any] {
+    // Return {count: N, time: T, avg_time: T/N}
+    return {}
+}
+
+// Print profiling report
+fn print_profile_report(vm: VM) -> void {
+    // Print per-opcode timing summary
+    // Sort by total time, show top N opcodes
+    // Example output:
+    //   Opcode         Count   Time(ms)   Avg(us)
+    //   ADD              1M     150.2       0.15
+    //   CALL           100k      95.1       0.95
+    //   ...
+}
+

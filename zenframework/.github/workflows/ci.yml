@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup environment
+        run: echo "Running on $RUNNER_OS"
+
+      - name: Run bootstrap on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          chmod +x bootstrap.sh || true
+          ./bootstrap.sh -test
+        shell: bash
+
+      - name: Run bootstrap on Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          pwsh -NoProfile -NoLogo -Command "Set-ExecutionPolicy Bypass -Scope Process -Force; .\\bootstrap.ps1 -Test"
+        shell: pwsh

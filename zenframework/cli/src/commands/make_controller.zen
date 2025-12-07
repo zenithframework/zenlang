@@ -1,0 +1,43 @@
+﻿// Command: make:controller
+// File: cli/src/commands/make_controller.zen
+
+import core::console::{println, style};
+import core::fs::{write_file, file_exists};
+import core::string::{to_pascal_case};
+
+// The handle function is called by the main CLI router.
+fn handle(args: array<string>) {
+    if args.length() == 0 {
+        println(style("Error: Controller name is required.", "red"));
+        println("Usage: zen make:controller <ControllerName>");
+        return;
+    }
+
+    let controller_name = to_pascal_case(args[0]);
+    if !controller_name.ends_with("Controller") {
+        controller_name += "Controller";
+    }
+    
+    let file_path = "./app/Http/Controllers/" + controller_name + ".zen";
+
+    if file_exists(file_path) {
+        println(style("Error: Controller '" + controller_name + "' already exists.", "red"));
+        return;
+    }
+
+    let stub = "class " + controller_name + " {\n" 
+             + "    // Method to handle a GET request\n" 
+             + "    fn index() {\n" 
+             + "        // Return a view or response\n" 
+             + "    }\n\n" 
+             + "    // Method to handle storing a new resource\n" 
+             + "    fn store(request: Request) {\n" 
+             + "        // Process request and save data\n" 
+             + "    }\n" 
+             + "}\n";
+
+    write_file(file_path, stub);
+
+    println(style("Controller created successfully: ", "green") + style(file_path, "bold"));
+}
+

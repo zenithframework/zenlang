@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenith Framework Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --header-height: 60px;
+            --background-color: #ffffff;
+            --text-color: #374151;
+            --primary-color: #6366f1;
+            --secondary-color: #4f46e5;
+            --accent-color: #a78bfa;
+            --card-background: #f9fafb;
+            --border-color: #e5e7eb;
+            --code-background: #f3f4f6;
+        }
+        body.dark-mode {
+            --background-color: #111827;
+            --text-color: #d1d5db;
+            --primary-color: #8b5cf6;
+            --secondary-color: #7c3aed;
+            --accent-color: #c4b5fd;
+            --card-background: #1f2937;
+            --border-color: #374151;
+            --code-background: #1e293b;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .docs-layout {
+            display: flex;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--card-background);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            transition: transform 0.3s ease-in-out;
+            z-index: 1100;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+             display: block;
+             margin-bottom: 30px;
+             font-size: 1.8rem;
+             font-weight: 700;
+             color: var(--primary-color);
+             text-decoration: none;
+             text-align: center;
+        }
+        .sidebar-nav h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            margin-top: 20px;
+            padding: 0 15px;
+        }
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .sidebar-nav li a {
+            display: block;
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar-nav li a:hover, .sidebar-nav li a.active {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            transition: margin-left 0.3s ease-in-out;
+        }
+        header {
+            background-color: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            height: var(--header-height);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text-color);
+            margin-right: 15px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+        .theme-switch {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+        section {
+            padding-top: calc(var(--header-height) + 20px);
+            margin-top: calc(-1 * (var(--header-height) + 20px));
+        }
+        .hero { text-align: center; padding: 60px 20px; border-bottom: 1px solid var(--border-color); }
+        .hero h1 { font-size: 3rem; }
+        .hero p { font-size: 1.2rem; }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; padding: 40px 0; }
+        .feature-card { background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 10px; padding: 30px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: transform 0.3s, box-shadow 0.3s; }
+        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+        .feature-card h3 { color: var(--primary-color); font-size: 1.5rem; margin-top: 0; margin-bottom: 15px; }
+        .get-started { padding: 40px 0; }
+        .get-started h2, .get-started h3 { color: var(--primary-color); }
+        .get-started h2 { text-align: center; font-size: 2.2rem; margin-bottom: 40px; }
+        .get-started h3 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-top: 30px; }
+        .code-block { background-color: var(--code-background); border-radius: 8px; margin: 20px 0; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .code-block-header { display: flex; justify-content: space-between; align-items: center; background-color: var(--card-background); padding: 10px 20px; border-bottom: 1px solid var(--border-color); border-top-left-radius: 8px; border-top-right-radius: 8px; }
+        .code-block-header span { font-family: 'Fira Code', monospace; color: var(--text-color); font-weight: 600; font-size: 0.9rem; }
+        .copy-btn { background-color: var(--secondary-color); color: #fff; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
+        .copy-btn:hover { background-color: var(--primary-color); }
+        pre[class*="language-"] { margin: 0; padding: 20px; font-family: 'Fira Code', monospace; background: transparent !important; }
+        footer { text-align: center; padding: 40px 20px; background-color: var(--card-background); border-top: 1px solid var(--border-color); margin-top: 60px; }
+
+        @media (max-width: 992px) {
+            .sidebar { transform: translateX(-100%); }
+            body.sidebar-open .sidebar { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.1); }
+            .main-content { margin-left: 0; width: 100%; }
+            .menu-btn { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="docs-layout">
+        <aside class="sidebar" id="sidebar">
+            <a href="#" class="logo">Zenith</a>
+            <nav class="sidebar-nav">
+                <h4>Getting Started</h4>
+                <ul>
+                    <li><a href="#introduction">Introduction</a></li>
+                    <li><a href="#get-started">Keywords & Syntax</a></li>
+                </ul>
+                <h4>Core Concepts</h4>
+                <ul>
+                    <li><a href="#language">The Language</a></li>
+                    <li><a href="#framework">The Framework</a></li>
+                    <li><a href="#package-manager">Package Manager</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="main-content">
+            <header>
+                <div class="header-left">
+                    <button class="menu-btn" id="menu-toggle">☰</button>
+                </div>
+                <div class="header-right">
+                    <button class="theme-switch" id="theme-toggle">☀️</button>
+                </div>
+            </header>
+
+            <main class="container">
+                <section id="introduction" class="hero">
+                    <h1>Build the Future with Zenith.</h1>
+                    <p>A modern, high-performance, and developer-friendly framework for building robust web applications with ease.</p>
+                    <a href="#get-started" class="btn">Get Started</a>
+                </section>
+
+                <section id="core-concepts">
+                    <div class="features">
+                        <div id="language" class="feature-card">
+                            <h3>The Zenith Language</h3>
+                            <p>A simple, powerful, and expressive programming language with built-in UI component syntax for full-stack development.</p>
+                        </div>
+                        <div id="framework" class="feature-card">
+                            <h3>Zenith Framework</h3>
+                            <p>An MVC-inspired web framework offering speed, security, and a seamless development experience for complex applications.</p>
+                        </div>
+                        <div id="package-manager" class="feature-card">
+                            <h3>Zen Package Manager</h3>
+                            <p>Manage dependencies, build, and publish your Zenith projects with `zenpkg`, ensuring reproducible and reliable builds.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="get-started" class="get-started">
+                    <h2>Get Started with Zenith</h2>
+                    <p>Zenith is designed to be simple and intuitive. Here are the basics to get you started on your journey.</p>
+                    
+                    <h3>Keywords</h3>
+                    <p>Zenith has a reserved set of keywords. Here are some of the most common ones:</p>
+                    
+                    <h3>Variables and Constants</h3>
+                    <div class="code-block">
+                        <div class="code-block-header"><span>zenith</span><button class="copy-btn">Copy</button></div>
+                        <pre><code class="language-zenith">// Variables are declared with `let`. Types are required.
+let message: string = "Hello, Zenith!";
+
+// Constants are declared with `const`.
+const PI: float = 3.14159;
+</code></pre>
+                    </div>
+
+                    <h3>Functions</h3>
+                    <div class="code-block">
+                        <div class="code-block-header"><span>zenith</span><button class="copy-btn">Copy</button></div>
+                        <pre><code class="language-zenith">// Functions are declared with `fn` and require typed parameters and a return type.
+fn add(a: int, b: int): int {
+    return a + b;
+}
+
+let result = add(5, 10); // result is 15
+</code></pre>
+                    </div>
+
+                    <h3>Classes and Objects</h3>
+                    <div class="code-block">
+                        <div class="code-block-header"><span>zenith</span><button class="copy-btn">Copy</button></div>
+                        <pre><code class="language-zenith">class Greeter {
+    name: string;
+
+    fn constructor(name: string) {
+        this.name = name;
+    }
+
+    fn greet() {
+        print("Hello, " + this.name);
+    }
+}
+
+let greeter = new Greeter("Zenith Developer");
+greeter.greet(); // Prints "Hello, Zenith Developer"
+</code></pre>
+                    </div>
+                    
+                    <h3>UI Components</h3>
+                    <p>Zenith's standout feature is its first-class support for UI components.</p>
+                    <div class="code-block">
+                        <div class="code-block-header"><span>zenith</span><button class="copy-btn">Copy</button></div>
+                        <pre><code class="language-zenith">// Define a reusable UI component
+component Button(text: string) {
+    // Renders a native button element. The syntax inside is a superset of HTML.
+    <button class="btn">{text}</button>
+}
+
+// Define a full page that uses the component
+page HomePage(title: string) {
+    layout: "app"; // Specifies a master layout
+
+    fn render() {
+        <div class="container">
+            <h1>{title}</h1>
+            <p>Welcome to a Zenith-powered application!</p>
+            <Button text="Click Me!" />
+        </div>
+    }
+}
+</code></pre>
+                    </div>
+                </section>
+            </main>
+
+            <footer>
+                <div class="container">
+                    <p>&copy; 2025 Zenith Framework. All rights reserved.</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script>
+        // Define Zenith language grammar for Prism
+        Prism.languages.zenith = {
+            'comment': [ /\/\/.*/, { pattern: /\/\*[\s\S]*?\*\//, greedy: true } ],
+            'string': { pattern: /"(?:\\.|[^\\"\r\n])*"/, greedy: true },
+            'keyword': /\b(if|else|for|return|new|let|const|fn|class|page|component|this)\b/,
+            'boolean': /\b(true|false)\b/,
+            'function': /\b\w+(?=\()/,
+            'number': /\b-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?/i,
+            'operator': /[-+]{1,2}|!|<=?|>=?|={1,2}|[&|]{1,2}|[*/%~^]/,
+            'punctuation': /[{}[\];(),.:]/,
+            'type': { pattern: /\b(string|int|float|bool|array|map)\b/, alias: 'class-name' }
+        };
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const prismLink = document.querySelector('link[href*="prism"]');
+        const darkTheme = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css";
+        const lightTheme = "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css";
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeToggle.textContent = '🌙';
+                prismLink.setAttribute('href', darkTheme);
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.classList.remove('dark-mode');
+                themeToggle.textContent = '☀️';
+                prismLink.setAttribute('href', lightTheme);
+                localStorage.setItem('theme', 'light');
+            }
+        }
+        
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        setTheme(currentTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+            setTheme(newTheme);
+        });
+
+        // Copy Button
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const code = button.closest('.code-block').querySelector('pre code').innerText;
+                navigator.clipboard.writeText(code).then(() => {
+                    button.innerText = 'Copied!';
+                    setTimeout(() => { button.innerText = 'Copy'; }, 2000);
+                });
+            });
+        });
+
+        // Mobile Sidebar Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        document.addEventListener('click', (e) => {
+            if (e.target === menuToggle) {
+                 body.classList.toggle('sidebar-open');
+            } else if (body.classList.contains('sidebar-open') && !e.target.closest('#sidebar')) {
+                 body.classList.remove('sidebar-open');
+            }
+        });
+    </script>
+</body>
+</html>

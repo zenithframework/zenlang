@@ -1,0 +1,65 @@
+// Example: Strings
+// Demonstrates string operations and manipulation
+
+print("=== Strings Example ===");
+
+// String literals
+var greeting = "Hello, World!";
+var name = "Zen";
+print("Greeting: ", greeting);
+print("Name: ", name);
+
+// String concatenation
+var full_message = greeting + " I am " + name;
+print("Full message: ", full_message);
+
+// String length
+print("Length of '", greeting, "': ", length(greeting));
+
+// String indexing
+print("First character: ", greeting[0]);
+print("Last character: ", greeting[length(greeting) - 1]);
+
+// Single vs double quotes (both work)
+var single = 'Single quotes';
+var double = "Double quotes";
+print("Single: ", single);
+print("Double: ", double);
+
+// Escape sequences
+var with_newline = "Line 1\nLine 2";
+print("With newline:", with_newline);
+
+var with_tab = "Column1\tColumn2\tColumn3";
+print("With tabs:", with_tab);
+
+// String comparison
+var str1 = "apple";
+var str2 = "apple";
+var str3 = "Apple";
+
+print("\nString comparison:");
+print("'apple' == 'apple': ", str1 == str2);
+print("'apple' == 'Apple': ", str1 == str3);
+print("'apple' != 'Apple': ", str1 != str3);
+
+// String to number (if supported)
+var number_string = "42";
+print("\nNumber string: '", number_string, "'");
+
+// String in arrays
+var words = ["Hello", "from", "Zen"];
+print("\nWords array: ", words);
+for (var i = 0; i < length(words); i = i + 1) {
+    print("  Word ", i, ": ", words[i]);
+}
+
+// Building strings
+var message = "";
+message = message + "The ";
+message = message + "quick ";
+message = message + "brown ";
+message = message + "fox";
+print("\nBuilt message: ", message);
+
+print("=== Done ===");

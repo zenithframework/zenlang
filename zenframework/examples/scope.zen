@@ -1,0 +1,72 @@
+// Example: Variable Scope
+// Demonstrates global scope, local scope, and lexical scoping
+
+// Global variable
+var global_var = "I am global";
+
+function outer_function() {
+    // Local variable in outer function
+    var outer_var = "I am in outer function";
+    
+    print("In outer_function:");
+    print("  global_var: ", global_var);
+    print("  outer_var: ", outer_var);
+    
+    function inner_function() {
+        // Local variable in inner function
+        var inner_var = "I am in inner function";
+        
+        print("In inner_function:");
+        print("  global_var: ", global_var);
+        print("  outer_var: ", outer_var);
+        print("  inner_var: ", inner_var);
+        
+        // Modify outer scope variable
+        outer_var = "Modified in inner function";
+    }
+    
+    inner_function();
+    print("After inner_function, outer_var: ", outer_var);
+}
+
+function test_shadowing() {
+    // This creates a new local variable with the same name
+    var global_var = "I shadow the global variable";
+    
+    print("In test_shadowing:");
+    print("  global_var (local): ", global_var);
+}
+
+function test_closure_scope() {
+    var closure_var = "Captured by closure";
+    
+    function get_closure_var() {
+        return closure_var;
+    }
+    
+    return get_closure_var;
+}
+
+print("=== Variable Scope Example ===");
+
+print("Initial global_var: ", global_var);
+
+print("\n--- Testing nested function scope ---");
+outer_function();
+
+print("\n--- Testing variable shadowing ---");
+test_shadowing();
+print("global_var (still global): ", global_var);
+
+print("\n--- Testing closure scope ---");
+var my_closure = test_closure_scope();
+print("Closure result: ", my_closure());
+
+print("\n--- Testing block scope with loops ---");
+for (var i = 0; i < 3; i = i + 1) {
+    var loop_var = "Iteration " + i;
+    print("  loop_var: ", loop_var);
+}
+// In Zen, loop variables are accessible after the loop (function scope)
+
+print("=== Done ===");

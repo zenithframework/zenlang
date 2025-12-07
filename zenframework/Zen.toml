@@ -1,0 +1,135 @@
+﻿[project]
+name = "zenith-framework"
+version = "1.0.0"
+description = "Pure Zenith Framework - A modern programming language and compiler written entirely in Zenith (no Python dependencies)"
+author = "Zenith Team"
+license = "MIT"
+repository = "https://github.com/zenithframework/zenith"
+
+[compiler]
+# Compiler settings
+target = "bytecode"
+optimization = true
+profiling = true
+bootstrapping = true
+
+# Memory settings
+max-memory = "10MB"
+stack-size = "2MB"
+heap-size = "8MB"
+
+# Performance targets
+lexer-throughput = "100MB/s"
+parser-throughput = "50MB/s"
+compilation-throughput = "50MB/s"
+
+[build]
+# Output settings
+output-binary = "zen"
+output-size-target = "500KB"
+static-linking = true
+strip-debug = true
+
+# Build stages
+stages = [
+    "lexical-analysis",
+    "syntax-analysis", 
+    "semantic-analysis",
+    "bytecode-generation",
+    "optimization",
+    "binary-generation"
+]
+
+[dependencies]
+# Pure Zenith - NO external dependencies!
+# All compiler components are written in Zenith
+
+[modules]
+# Core compiler modules
+"token" = "compiler-native/src/token.zen"
+"lexer" = "compiler-native/src/lexer.zen"
+"ast" = "compiler-native/src/ast.zen"
+"parser" = "compiler-native/src/parser.zen"
+"compiler" = "compiler-native/src/compiler.zen"
+"code" = "compiler-native/src/code.zen"
+"vm" = "compiler-native/src/vm.zen"
+"object" = "compiler-native/src/object.zen"
+
+# CLI
+"cli" = "cli/zen/cli.zen"
+
+# Standard library
+"builtins" = "compiler-native/src/builtins.zen"
+
+[runtime]
+# Runtime settings
+gc-enabled = true
+gc-strategy = "mark-and-sweep"
+inline-caching = true
+jit-enabled = false  # Can be enabled in future versions
+
+[features]
+# Language features status
+let-const = true
+functions = true
+classes = true
+pages = true
+components = true
+web-framework = true
+pattern-matching = true
+generics = false  # Future
+async-await = false  # Future
+
+[performance]
+# Performance profiling and optimization
+profiling-enabled = true
+benchmarking-enabled = true
+
+# Optimization passes
+optimizations = [
+    "constant-folding",
+    "dead-code-elimination",
+    "peephole-optimization",
+    "inlining",
+    "loop-unrolling"
+]
+
+[compatibility]
+# Bytecode format compatibility
+bytecode-version = "1.0"
+python-bytecode-compatible = true
+backward-compatible = true
+
+[testing]
+# Test configuration
+test-directory = "compiler/tests"
+coverage-required = 0.85
+test-runner = "zen-test"
+
+[documentation]
+# Documentation settings
+docs-directory = "docs"
+api-docs-generated = true
+generate-coverage = true
+
+[bootstrap]
+# Bootstrap verification
+stage-0 = "python compiler"        # Reference Python implementation
+stage-1 = "zenith compiler v0"     # Zenith compiler compiled by Python
+stage-2 = "zenith compiler v1"     # Zenith compiler compiled by stage-1
+verification = "stage1-output == stage2-output"  # Prove self-hosting
+
+[profiles.debug]
+optimization-level = 0
+debug-symbols = true
+profiling = true
+
+[profiles.release]
+optimization-level = 3
+debug-symbols = false
+profiling = false
+strip-binary = true
+
+
+
+

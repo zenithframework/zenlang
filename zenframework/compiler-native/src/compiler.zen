@@ -1,0 +1,568 @@
+// Zenith Compiler - Bytecode Generation
+// File: compiler.zen
+// Purpose: Convert AST to bytecode with optimization
+
+import "token.zen"
+import "ast.zen"
+import "code.zen"
+import "lexer.zen"
+import "parser.zen"
+
+// Compiler state and context
+component CompilerContext {
+    scope: Scope                    // Current scope
+    bytecode: Bytecode              // Output bytecode
+    symbol_table: map[string, int]  // Global symbol table
+    local_symbols: array[array[string]] // Local scopes stack
+    local_count: int                // Number of local variables
+    function_depth: int             // Nesting depth of functions
+    loop_depth: int                 // Nesting depth of loops
+    error_list: array[string]       // Compilation errors
+}
+
+// Initialize compiler
+fn create_compiler() -> CompilerContext {
+    compiler = CompilerContext {
+        scope: null,
+        bytecode: Bytecode {
+            instructions: [],
+            constants: [],
+            functions: [],
+            symbol_table: {},
+            line_info: [],
+            source_name: "untitled",
+            start_line: 1,
+            end_line: 1
+        },
+        symbol_table: {},
+        local_symbols: [],
+        local_count: 0,
+        function_depth: 0,
+        loop_depth: 0,
+        error_list: []
+    }
+    return compiler
+}
+
+// Emit instruction
+fn emit(compiler: CompilerContext, opcode: int, operand1: int, operand2: int) -> void {
+    instr = Instruction {
+        opcode: opcode,
+        operand1: operand1,
+        operand2: operand2,
+        operand3: 0,
+        line: 0,
+        column: 0
+    }
+    
+    push(compiler.bytecode.instructions, instr)
+    push(compiler.bytecode.line_info, 0)
+}
+
+// Emit instruction with single operand
+fn emit_op(compiler: CompilerContext, opcode: int) -> void {
+    emit(compiler, opcode, 0, 0)
+}
+
+// Add constant to pool
+fn add_constant(compiler: CompilerContext, value: any) -> int {
+    push(compiler.bytecode.constants, value)
+    return len(compiler.bytecode.constants) - 1
+}
+
+// Add symbol to current scope
+fn add_symbol(compiler: CompilerContext, name: string) -> int {
+    idx = len(compiler.bytecode.symbol_table)
+    compiler.bytecode.symbol_table[name] = idx
+    return idx
+}
+
+// Lookup symbol
+fn lookup_symbol(compiler: CompilerContext, name: string) -> int {
+    if name in compiler.bytecode.symbol_table {
+        return compiler.bytecode.symbol_table[name]
+    }
+    return -1
+}
+
+// Push scope
+fn push_scope(compiler: CompilerContext) -> void {
+    push(compiler.local_symbols, [])
+}
+
+// Pop scope
+fn pop_scope(compiler: CompilerContext) -> void {
+    if len(compiler.local_symbols) > 0 {
+        pop(compiler.local_symbols)
+    }
+}
+
+// Compile entire program
+fn compile(source: string, filename: string) -> [Bytecode, array[string]] {
+    compiler = create_compiler()
+    compiler.bytecode.source_name = filename
+    
+    // Tokenize
+    lexer = Lexer.new(source)
+    
+    // Parse
+    parser = Parser.new(lexer)
+    ast = parser.parse()
+    
+    // Check parse errors
+    if len(parser.errors) > 0 {
+        return [compiler.bytecode, parser.errors]
+    }
+    
+    // Compile AST to bytecode
+    compile_program(compiler, ast)
+    
+    // Emit halt instruction
+    emit_op(compiler, OpCode.HALT)
+    
+    return [compiler.bytecode, compiler.error_list]
+}
+
+// Compile program (list of statements)
+fn compile_program(compiler: CompilerContext, program: array[any]) -> void {
+    for stmt in program {
+        compile_statement(compiler, stmt)
+    }
+}
+
+// Compile statement
+fn compile_statement(compiler: CompilerContext, stmt: any) -> void {
+    if stmt == null {
+        return
+    }
+    
+    node_type = get_type(stmt)
+    
+    match node_type {
+        "ExpressionStatement": compile_expression(compiler, stmt.expression)
+        "LetStatement": compile_let(compiler, stmt)
+        "ReturnStatement": compile_return(compiler, stmt)
+        "BlockStatement": compile_block(compiler, stmt)
+        "IfStatement": compile_if(compiler, stmt)
+        "ForStatement": compile_for(compiler, stmt)
+        "WhileStatement": compile_while(compiler, stmt)
+        "FunctionDeclaration": compile_function_decl(compiler, stmt)
+        "ClassDeclaration": compile_class_decl(compiler, stmt)
+        "TryStatement": compile_try(compiler, stmt)
+        "ThrowStatement": compile_throw(compiler, stmt)
+        default: emit_op(compiler, OpCode.NULL)  // Unknown statement
+    }
+}
+
+// Compile let statement
+fn compile_let(compiler: CompilerContext, stmt: any) -> void {
+    name = stmt.name.value
+    idx = add_symbol(compiler, name)
+    
+    if stmt.value != null {
+        compile_expression(compiler, stmt.value)
+    } else {
+        emit_op(compiler, OpCode.NULL)
+    }
+    
+    emit(compiler, OpCode.SET_LOCAL, idx, 0)
+}
+
+// Compile return statement
+fn compile_return(compiler: CompilerContext, stmt: any) -> void {
+    if stmt.value != null {
+        compile_expression(compiler, stmt.value)
+    } else {
+        emit_op(compiler, OpCode.NULL)
+    }
+    
+    emit_op(compiler, OpCode.RETURN)
+}
+
+// Compile block statement
+fn compile_block(compiler: CompilerContext, stmt: any) -> void {
+    for s in stmt.statements {
+        compile_statement(compiler, s)
+    }
+}
+
+// Compile if statement
+fn compile_if(compiler: CompilerContext, stmt: any) -> void {
+    compile_expression(compiler, stmt.condition)
+    
+    // Jump over true branch if condition is false
+    jump_false_offset = len(compiler.bytecode.instructions)
+    emit(compiler, OpCode.JUMP_IF_FALSE, 0, 0)
+    
+    // Compile true branch
+    compile_statement(compiler, stmt.consequence)
+    
+    if stmt.alternative != null {
+        // Jump over false branch
+        jump_true_offset = len(compiler.bytecode.instructions)
+        emit(compiler, OpCode.JUMP, 0, 0)
+        
+        // Patch false jump
+        compiler.bytecode.instructions[jump_false_offset].operand1 = len(compiler.bytecode.instructions)
+        
+        // Compile false branch
+        compile_statement(compiler, stmt.alternative)
+        
+        // Patch true jump
+        compiler.bytecode.instructions[jump_true_offset].operand1 = len(compiler.bytecode.instructions)
+    } else {
+        // Patch false jump
+        compiler.bytecode.instructions[jump_false_offset].operand1 = len(compiler.bytecode.instructions)
+    }
+}
+
+// Compile for statement
+fn compile_for(compiler: CompilerContext, stmt: any) -> void {
+    compiler.loop_depth = compiler.loop_depth + 1
+    
+    if stmt.init != null {
+        compile_statement(compiler, stmt.init)
+    }
+    
+    loop_start = len(compiler.bytecode.instructions)
+    
+    if stmt.condition != null {
+        compile_expression(compiler, stmt.condition)
+        jump_offset = len(compiler.bytecode.instructions)
+        emit(compiler, OpCode.JUMP_IF_FALSE, 0, 0)
+    }
+    
+    compile_statement(compiler, stmt.body)
+    
+    if stmt.update != null {
+        compile_statement(compiler, stmt.update)
+    }
+    
+    emit(compiler, OpCode.JUMP, loop_start, 0)
+    
+    if stmt.condition != null {
+        compiler.bytecode.instructions[jump_offset].operand1 = len(compiler.bytecode.instructions)
+    }
+    
+    compiler.loop_depth = compiler.loop_depth - 1
+}
+
+// Compile while statement
+fn compile_while(compiler: CompilerContext, stmt: any) -> void {
+    compiler.loop_depth = compiler.loop_depth + 1
+    
+    loop_start = len(compiler.bytecode.instructions)
+    
+    compile_expression(compiler, stmt.condition)
+    jump_offset = len(compiler.bytecode.instructions)
+    emit(compiler, OpCode.JUMP_IF_FALSE, 0, 0)
+    
+    compile_statement(compiler, stmt.body)
+    
+    emit(compiler, OpCode.JUMP, loop_start, 0)
+    compiler.bytecode.instructions[jump_offset].operand1 = len(compiler.bytecode.instructions)
+    
+    compiler.loop_depth = compiler.loop_depth - 1
+}
+
+// Compile function declaration
+fn compile_function_decl(compiler: CompilerContext, stmt: any) -> void {
+    name = stmt.name.value
+    idx = add_symbol(compiler, name)
+    
+    // Create nested bytecode for function
+    old_bytecode = compiler.bytecode
+    compiler.bytecode = Bytecode {
+        instructions: [],
+        constants: [],
+        functions: [],
+        symbol_table: {},
+        line_info: [],
+        source_name: name,
+        start_line: 1,
+        end_line: 1
+    }
+    
+    // Add parameters as local variables
+    param_count = 0
+    if stmt.parameters != null {
+        for param in stmt.parameters {
+            add_symbol(compiler, param.value)
+            param_count = param_count + 1
+        }
+    }
+    
+    // Compile function body
+    compile_statement(compiler, stmt.body)
+    
+    // Add implicit return null
+    emit_op(compiler, OpCode.NULL)
+    emit_op(compiler, OpCode.RETURN)
+    
+    // Store function bytecode
+    func_bytecode = compiler.bytecode
+    push(old_bytecode.functions, func_bytecode)
+    
+    // Restore compiler state
+    compiler.bytecode = old_bytecode
+    
+    // Emit function instruction
+    func_idx = len(old_bytecode.functions) - 1
+    emit(compiler, OpCode.FUNCTION, func_idx, param_count)
+    emit(compiler, OpCode.SET_GLOBAL, idx, 0)
+}
+
+// Compile class declaration
+fn compile_class_decl(compiler: CompilerContext, stmt: any) -> void {
+    // TODO: Implement class compilation
+    emit_op(compiler, OpCode.NULL)
+}
+
+// Compile try statement
+fn compile_try(compiler: CompilerContext, stmt: any) -> void {
+    // TODO: Implement try/catch compilation
+    compile_statement(compiler, stmt.body)
+}
+
+// Compile throw statement
+fn compile_throw(compiler: CompilerContext, stmt: any) -> void {
+    compile_expression(compiler, stmt.value)
+    emit_op(compiler, OpCode.THROW)
+}
+
+// Compile expression
+fn compile_expression(compiler: CompilerContext, expr: any) -> void {
+    if expr == null {
+        emit_op(compiler, OpCode.NULL)
+        return
+    }
+    
+    node_type = get_type(expr)
+    
+    match node_type {
+        "IntegerLiteral": {
+            const_idx = add_constant(compiler, expr.value)
+            emit(compiler, OpCode.CONSTANT, const_idx, 0)
+        }
+        "FloatLiteral": {
+            const_idx = add_constant(compiler, expr.value)
+            emit(compiler, OpCode.CONSTANT, const_idx, 0)
+        }
+        "StringLiteral": {
+            const_idx = add_constant(compiler, expr.value)
+            emit(compiler, OpCode.CONSTANT, const_idx, 0)
+        }
+        "BooleanLiteral": {
+            if expr.value {
+                emit_op(compiler, OpCode.TRUE)
+            } else {
+                emit_op(compiler, OpCode.FALSE)
+            }
+        }
+        "NullLiteral": emit_op(compiler, OpCode.NULL)
+        "Identifier": {
+            idx = lookup_symbol(compiler, expr.value)
+            if idx >= 0 {
+                emit(compiler, OpCode.GET_LOCAL, idx, 0)
+            } else {
+                emit(compiler, OpCode.GET_GLOBAL, 0, 0)
+            }
+        }
+        "ArrayLiteral": compile_array_literal(compiler, expr)
+        "MapLiteral": compile_map_literal(compiler, expr)
+        "PrefixExpression": compile_prefix(compiler, expr)
+        "InfixExpression": compile_infix(compiler, expr)
+        "IfExpression": compile_if_expr(compiler, expr)
+        "CallExpression": compile_call(compiler, expr)
+        "IndexExpression": compile_index(compiler, expr)
+        "AssignmentExpression": compile_assignment(compiler, expr)
+        default: emit_op(compiler, OpCode.NULL)
+    }
+}
+
+// Compile array literal
+fn compile_array_literal(compiler: CompilerContext, expr: any) -> void {
+    count = 0
+    if expr.elements != null {
+        for elem in expr.elements {
+            compile_expression(compiler, elem)
+            count = count + 1
+        }
+    }
+    emit(compiler, OpCode.ARRAY, count, 0)
+}
+
+// Compile map literal
+fn compile_map_literal(compiler: CompilerContext, expr: any) -> void {
+    count = 0
+    if expr.pairs != null {
+        for pair in expr.pairs {
+            compile_expression(compiler, pair.key)
+            compile_expression(compiler, pair.value)
+            count = count + 1
+        }
+    }
+    emit(compiler, OpCode.MAP, count, 0)
+}
+
+// Compile prefix expression
+fn compile_prefix(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.operand)
+    
+    match expr.operator {
+        "!": emit_op(compiler, OpCode.NOT)
+        "-": emit_op(compiler, OpCode.NEGATE)
+        "~": emit_op(compiler, OpCode.BIT_NOT)
+        default: {}
+    }
+}
+
+// Compile infix expression
+fn compile_infix(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.left)
+    compile_expression(compiler, expr.right)
+    
+    match expr.operator {
+        "+": emit_op(compiler, OpCode.ADD)
+        "-": emit_op(compiler, OpCode.SUBTRACT)
+        "*": emit_op(compiler, OpCode.MULTIPLY)
+        "/": emit_op(compiler, OpCode.DIVIDE)
+        "%": emit_op(compiler, OpCode.MODULO)
+        "**": emit_op(compiler, OpCode.POWER)
+        "==": emit_op(compiler, OpCode.EQUAL)
+        "!=": emit_op(compiler, OpCode.NOT_EQUAL)
+        "<": emit_op(compiler, OpCode.LESS)
+        "<=": emit_op(compiler, OpCode.LESS_EQUAL)
+        ">": emit_op(compiler, OpCode.GREATER)
+        ">=": emit_op(compiler, OpCode.GREATER_EQUAL)
+        "&&": emit_op(compiler, OpCode.AND)
+        "||": emit_op(compiler, OpCode.OR)
+        "&": emit_op(compiler, OpCode.BIT_AND)
+        "|": emit_op(compiler, OpCode.BIT_OR)
+        "^": emit_op(compiler, OpCode.BIT_XOR)
+        "<<": emit_op(compiler, OpCode.LEFT_SHIFT)
+        ">>": emit_op(compiler, OpCode.RIGHT_SHIFT)
+        "<=>": emit_op(compiler, OpCode.SPACESHIP)
+        "in": emit_op(compiler, OpCode.IN)
+        default: {}
+    }
+}
+
+// Optimization: Constant folding
+// Detect constant expressions and pre-compute them
+fn constant_fold(compiler: CompilerContext, expr: Expression) -> any {
+    // If both operands are constants, compute result at compile-time
+    // Example: 5 + 3 => 8 (single CONSTANT opcode instead of 3)
+    // Placeholder: returns null (no folding yet)
+    return null
+}
+
+// Optimization: Dead code elimination (DCE)
+// Remove unreachable code after return/break/continue
+fn dead_code_eliminate(compiler: CompilerContext) -> void {
+    // Scan bytecode for unreachable instructions after control flow
+    // Example: code after return stmt is removed
+    // Placeholder: no-op
+}
+
+// Optimization: Peephole optimization
+// Replace inefficient instruction sequences with better ones
+fn peephole_optimize(compiler: CompilerContext) -> void {
+    // Patterns:
+    //   CONSTANT x, CONSTANT y, ADD  =>  CONSTANT (x+y)
+    //   DUP, POP  =>  (remove)
+    //   JUMP next, next:  =>  (remove jump)
+    // Placeholder: no-op
+}
+
+// Helper: Track scope for closure support
+fn push_scope(compiler: CompilerContext) -> void {
+    // Enter new lexical scope for nested functions
+    // Placeholder: no-op
+}
+
+fn pop_scope(compiler: CompilerContext) -> void {
+    // Exit lexical scope, finalize upvalue bindings
+    // Placeholder: no-op
+}
+
+// Helper: Register upvalue for closure
+fn register_upvalue(compiler: CompilerContext, name: string, is_local: bool) -> int {
+    // Track variable capture for closure
+    // Returns upvalue index
+    return 0  // Placeholder
+}
+
+// Helper: Profile instruction execution
+fn profile_opcode(opcode: int, elapsed: float) -> void {
+    // Record opcode execution time for profiling
+    // Placeholder: no-op
+}
+
+// Compile if expression
+fn compile_if_expr(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.condition)
+    jump_false = len(compiler.bytecode.instructions)
+    emit(compiler, OpCode.JUMP_IF_FALSE, 0, 0)
+    
+    compile_expression(compiler, expr.consequence)
+    jump_true = len(compiler.bytecode.instructions)
+    emit(compiler, OpCode.JUMP, 0, 0)
+    
+    compiler.bytecode.instructions[jump_false].operand1 = len(compiler.bytecode.instructions)
+    
+    if expr.alternative != null {
+        compile_expression(compiler, expr.alternative)
+    } else {
+        emit_op(compiler, OpCode.NULL)
+    }
+    
+    compiler.bytecode.instructions[jump_true].operand1 = len(compiler.bytecode.instructions)
+}
+
+// Compile call expression
+fn compile_call(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.function)
+    
+    arg_count = 0
+    if expr.arguments != null {
+        for arg in expr.arguments {
+            compile_expression(compiler, arg)
+            arg_count = arg_count + 1
+        }
+    }
+    
+    emit(compiler, OpCode.CALL, arg_count, 0)
+}
+
+// Compile index expression
+fn compile_index(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.object)
+    compile_expression(compiler, expr.index)
+    emit_op(compiler, OpCode.INDEX)
+}
+
+// Compile assignment expression
+fn compile_assignment(compiler: CompilerContext, expr: any) -> void {
+    compile_expression(compiler, expr.value)
+    
+    if expr.target_type == "Identifier" {
+        idx = lookup_symbol(compiler, expr.target.value)
+        if idx >= 0 {
+            emit(compiler, OpCode.SET_LOCAL, idx, 0)
+        } else {
+            emit(compiler, OpCode.SET_GLOBAL, 0, 0)
+        }
+    } else if expr.target_type == "IndexExpression" {
+        compile_expression(compiler, expr.target.object)
+        compile_expression(compiler, expr.target.index)
+        emit_op(compiler, OpCode.SET_INDEX)
+    }
+}
+
+// Get type name of AST node
+fn get_type(node: any) -> string {
+    // This is a simplified version - in real implementation would use type reflection
+    if node == null { return "null" }
+    return "unknown"
+}

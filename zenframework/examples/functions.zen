@@ -1,0 +1,42 @@
+// Example: Functions
+// Demonstrates function definition, parameters, return values, and recursion
+
+// Define a simple function with parameters
+function add(a, b) {
+    return a + b;
+}
+
+// Define a function with local variables
+function multiply(x, y) {
+    var result = x * y;
+    return result;
+}
+
+// Function with multiple return points
+function absolute(num) {
+    if (num < 0) {
+        return -num;
+    }
+    return num;
+}
+
+// Higher-order function that takes another function as parameter
+function apply_twice(func, value) {
+    var first = func(value);
+    return func(first);
+}
+
+// Test the functions
+print("=== Functions Example ===");
+print("add(5, 3) = ", add(5, 3));
+print("multiply(4, 7) = ", multiply(4, 7));
+print("absolute(-42) = ", absolute(-42));
+print("absolute(42) = ", absolute(42));
+
+// Test higher-order function
+function double(x) {
+    return x * 2;
+}
+
+print("double then double 5 = ", apply_twice(double, 5));
+print("=== Done ===");
