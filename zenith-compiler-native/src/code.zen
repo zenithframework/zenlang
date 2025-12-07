@@ -1,0 +1,485 @@
+// Zenith Compiler - Opcode Definitions
+// File: code.zen
+// Purpose: Define all bytecode opcodes and instruction formats
+
+component OpCode {
+    // Constants (0-4)
+    const CONSTANT = 0              // Load constant from pool
+    const TRUE = 1                  // Push true
+    const FALSE = 2                 // Push false
+    const NULL = 3                  // Push null
+    const UNDEFINED = 4             // Push undefined
+    
+    // Variables (5-9)
+    const GET_LOCAL = 5             // Load local variable
+    const SET_LOCAL = 6             // Store local variable
+    const GET_GLOBAL = 7            // Load global variable
+    const SET_GLOBAL = 8            // Store global variable
+    const GET_UPVALUE = 9           // Load closure variable
+    
+    // Collections (10-14)
+    const ARRAY = 10                // Create array from N items
+    const MAP = 11                  // Create map from N key-value pairs
+    const INDEX = 12                // Array/map index access
+    const SET_INDEX = 13            // Array/map assignment
+    const LEN = 14                  // Get length
+    
+    // Arithmetic (15-20)
+    const ADD = 15                  // Integer/float addition
+    const SUBTRACT = 16             // Integer/float subtraction
+    const MULTIPLY = 17             // Integer/float multiplication
+    const DIVIDE = 18               // Integer/float division
+    const MODULO = 19               // Integer modulo
+    const POWER = 20                // Integer/float exponentiation
+    
+    // Comparison (21-26)
+    const EQUAL = 21                // ==
+    const NOT_EQUAL = 22            // !=
+    const LESS = 23                 // <
+    const LESS_EQUAL = 24           // <=
+    const GREATER = 25              // >
+    const GREATER_EQUAL = 26        // >=
+    
+    // Logical (27-30)
+    const AND = 27                  // Logical AND
+    const OR = 28                   // Logical OR
+    const NOT = 29                  // Logical NOT
+    const IN = 30                   // Membership test (x in collection)
+    
+    // Bitwise (31-40)
+    const BIT_AND = 31              // Bitwise AND
+    const BIT_OR = 32               // Bitwise OR
+    const BIT_XOR = 33              // Bitwise XOR
+    const BIT_NOT = 34              // Bitwise NOT
+    const LEFT_SHIFT = 35           // Left shift
+    const RIGHT_SHIFT = 36          // Right shift
+    const NEGATE = 37               // Unary negation
+    const TYPE_OF = 38              // typeof operator
+    const INSTANCEOF = 39           // instanceof operator
+    const SPACESHIP = 40            // Spaceship operator <=>
+    
+    // Control Flow (41-44)
+    const JUMP = 41                 // Unconditional jump
+    const JUMP_IF_FALSE = 42        // Jump if top of stack is falsy
+    const JUMP_IF_TRUE = 43         // Jump if top of stack is truthy
+    const LOOP = 44                 // Loop instruction
+    
+    // Functions (45-47)
+    const CALL = 45                 // Call function (N args)
+    const RETURN = 46               // Return from function
+    const FUNCTION = 47             // Define function
+    
+    // Stack (48-49)
+    const POP = 48                  // Pop and discard top of stack
+    const DUP = 49                  // Duplicate top of stack
+    
+    // Special (50+)
+    const THROW = 50                // Throw exception
+    const CLASS = 51                // Define class
+    const NEW = 52                  // Create new instance
+    const TRY = 53                  // Try block
+    const CATCH = 54                // Catch block
+    const FINALLY = 55              // Finally block
+    const HALT = 56                 // Stop execution
+}
+
+// Bytecode instruction format
+component Instruction {
+    opcode: byte                    // OpCode value (0-56)
+    operand1: int                   // First operand (index, offset, count, etc)
+    operand2: int                   // Second operand (optional)
+    operand3: int                   // Third operand (optional)
+    line: int                       // Source line number
+    column: int                     // Source column number
+}
+
+// Bytecode chunk (compiled code unit)
+component Bytecode {
+    instructions: array[Instruction]    // Array of instructions
+    constants: array[any]               // Constant pool (integers, strings, etc)
+    functions: array[Bytecode]          // Nested functions
+    symbol_table: map[string, int]      // Variable/function names -> indices
+    line_info: array[int]               // Line number for each instruction
+    source_name: string                 // Source filename
+    start_line: int                     // First source line
+    end_line: int                       // Last source line
+}
+
+// Exception frame for try/catch/finally support
+component ExceptionFrame {
+    try_start: int                      // Start of try block (instruction offset)
+    catch_start: int                    // Start of catch block (instruction offset)
+    catch_end: int                      // End of catch block
+    finally_start: int                  // Start of finally block
+    finally_end: int                    // End of finally block
+    scope_depth: int                    // Stack depth at try entry (for unwinding)
+    exception_var: string               // Variable name for caught exception
+}
+
+// Exception value (thrown and caught)
+component Exception {
+    type_name: string                   // Exception type ("Error", "RuntimeError", etc)
+    message: string                     // Error message
+    stack_trace: array[string]          // Stack trace (filenames:line numbers)
+    cause: any                          // Underlying cause (optional)
+}
+
+// Closure (function with captured variables)
+component Closure {
+    function_idx: int                   // Function bytecode index
+    upvalues: array[any]                // Captured variable values
+}
+
+// UpValue (captured variable reference)
+component UpValue {
+    name: string                        // Variable name
+    index: int                          // Index in parent scope
+    is_local: bool                      // True if local, false if upvalue
+}
+
+// Profiling data (per-opcode instrumentation)
+component ProfileData {
+    opcode_counts: array[int]           // Count per opcode [0..56]
+    opcode_time: array[float]           // Time per opcode [0..56]
+    function_calls: int                 // Total function calls
+    memory_allocated: int               // Total bytes allocated
+    gc_runs: int                        // Garbage collection runs
+    execution_time: float               // Total execution time (ms)
+}
+
+// Helper to get opcode name
+fn opcode_name(opcode: int) -> string {
+    match opcode {
+        OpCode.CONSTANT: return "CONSTANT"
+        OpCode.TRUE: return "TRUE"
+        OpCode.FALSE: return "FALSE"
+        OpCode.NULL: return "NULL"
+        OpCode.UNDEFINED: return "UNDEFINED"
+        OpCode.GET_LOCAL: return "GET_LOCAL"
+        OpCode.SET_LOCAL: return "SET_LOCAL"
+        OpCode.GET_GLOBAL: return "GET_GLOBAL"
+        OpCode.SET_GLOBAL: return "SET_GLOBAL"
+        OpCode.GET_UPVALUE: return "GET_UPVALUE"
+        OpCode.ARRAY: return "ARRAY"
+        OpCode.MAP: return "MAP"
+        OpCode.INDEX: return "INDEX"
+        OpCode.SET_INDEX: return "SET_INDEX"
+        OpCode.LEN: return "LEN"
+        OpCode.ADD: return "ADD"
+        OpCode.SUBTRACT: return "SUBTRACT"
+        OpCode.MULTIPLY: return "MULTIPLY"
+        OpCode.DIVIDE: return "DIVIDE"
+        OpCode.MODULO: return "MODULO"
+        OpCode.POWER: return "POWER"
+        OpCode.EQUAL: return "EQUAL"
+        OpCode.NOT_EQUAL: return "NOT_EQUAL"
+        OpCode.LESS: return "LESS"
+        OpCode.LESS_EQUAL: return "LESS_EQUAL"
+        OpCode.GREATER: return "GREATER"
+        OpCode.GREATER_EQUAL: return "GREATER_EQUAL"
+        OpCode.AND: return "AND"
+        OpCode.OR: return "OR"
+        OpCode.NOT: return "NOT"
+        OpCode.IN: return "IN"
+        OpCode.BIT_AND: return "BIT_AND"
+        OpCode.BIT_OR: return "BIT_OR"
+        OpCode.BIT_XOR: return "BIT_XOR"
+        OpCode.BIT_NOT: return "BIT_NOT"
+        OpCode.LEFT_SHIFT: return "LEFT_SHIFT"
+        OpCode.RIGHT_SHIFT: return "RIGHT_SHIFT"
+        OpCode.NEGATE: return "NEGATE"
+        OpCode.TYPE_OF: return "TYPE_OF"
+        OpCode.INSTANCEOF: return "INSTANCEOF"
+        OpCode.SPACESHIP: return "SPACESHIP"
+        OpCode.JUMP: return "JUMP"
+        OpCode.JUMP_IF_FALSE: return "JUMP_IF_FALSE"
+        OpCode.JUMP_IF_TRUE: return "JUMP_IF_TRUE"
+        OpCode.LOOP: return "LOOP"
+        OpCode.CALL: return "CALL"
+        OpCode.RETURN: return "RETURN"
+        OpCode.FUNCTION: return "FUNCTION"
+        OpCode.POP: return "POP"
+        OpCode.DUP: return "DUP"
+        OpCode.THROW: return "THROW"
+        OpCode.CLASS: return "CLASS"
+        OpCode.NEW: return "NEW"
+        OpCode.TRY: return "TRY"
+        OpCode.CATCH: return "CATCH"
+        OpCode.FINALLY: return "FINALLY"
+        OpCode.HALT: return "HALT"
+        default: return "UNKNOWN"
+    }
+}
+
+// Helper to get opcode size (instruction + operands)
+fn opcode_size(opcode: int) -> int {
+    match opcode {
+        OpCode.CONSTANT, OpCode.GET_LOCAL, OpCode.SET_LOCAL,
+        OpCode.GET_GLOBAL, OpCode.SET_GLOBAL, OpCode.GET_UPVALUE,
+        OpCode.ARRAY, OpCode.MAP, OpCode.CALL, OpCode.INDEX,
+        OpCode.SET_INDEX, OpCode.JUMP, OpCode.JUMP_IF_FALSE,
+        OpCode.JUMP_IF_TRUE: return 2  // opcode + operand
+        default: return 1  // Just opcode
+    }
+}
+
+// Helper to disassemble a single instruction
+fn disassemble_instruction(bytecode: Bytecode, offset: int) -> [int, string] {
+    if offset >= len(bytecode.instructions) {
+        return [offset, "INVALID OFFSET"]
+    }
+    
+    instr = bytecode.instructions[offset]
+    opcode = instr.opcode
+    name = opcode_name(opcode)
+    
+    output = name
+    
+    match opcode {
+        OpCode.CONSTANT: {
+            const_idx = instr.operand1
+            const_val = bytecode.constants[const_idx]
+            output = output + " " + const_idx + " (" + const_val + ")"
+        }
+        OpCode.GET_LOCAL, OpCode.SET_LOCAL,
+        OpCode.GET_GLOBAL, OpCode.SET_GLOBAL,
+        OpCode.GET_UPVALUE: {
+            output = output + " " + instr.operand1
+        }
+        OpCode.ARRAY, OpCode.MAP, OpCode.CALL: {
+            output = output + " " + instr.operand1
+        }
+        OpCode.INDEX: {
+            output = output + " [" + instr.operand1 + "]"
+        }
+        OpCode.SET_INDEX: {
+            output = output + " [" + instr.operand1 + "]"
+        }
+        OpCode.JUMP, OpCode.JUMP_IF_FALSE, OpCode.JUMP_IF_TRUE: {
+            output = output + " -> " + instr.operand1
+        }
+        default: {
+            if instr.operand1 != 0 {
+                output = output + " " + instr.operand1
+            }
+        }
+    }
+    
+    return [offset + 1, output]
+}
+
+// Helper to fully disassemble bytecode
+fn disassemble(bytecode: Bytecode, name: string) -> string {
+    output = "== " + name + " ==\n"
+    offset = 0
+    
+    for {
+        if offset >= len(bytecode.instructions) {
+            break
+        }
+        
+        result = disassemble_instruction(bytecode, offset)
+        offset = result[0]
+        output = output + result[1] + "\n"
+    }
+    
+    return output
+}
+
+// Bytecode serialization format (.zbc files):
+// [Magic] "ZBEN" (4 bytes)
+// [Version] 0x01 (1 byte)
+// [Flags] 0x00 (1 byte, reserved)
+// [Instr Count] u32 little-endian
+// [Const Count] u32 little-endian
+// [Func Count] u32 little-endian
+// [CRC32] u32 little-endian (checksum of above)
+// [Instructions] (instr_count * 16 bytes: opcode u8, op1 u32, op2 u32, op3 u32)
+// [Constants] (size-prefixed values: type u8, size u32, data...)
+// [Functions] (func_count * 4 bytes: entry point u32)
+
+// Serialize bytecode to binary format
+fn bytecode_serialize(bytecode: Bytecode) -> string {
+    // Build header
+    buffer = ""
+    buffer = buffer + "ZBEN"                    // Magic
+    buffer = buffer + chr(1)                    // Version
+    buffer = buffer + chr(0)                    // Flags (reserved)
+    
+    // Append counts (stored as big-endian u32)
+    instr_count = len(bytecode.instructions)
+    const_count = len(bytecode.constants)
+    func_count = len(bytecode.functions)
+    
+    buffer = buffer + u32_to_bytes(instr_count)
+    buffer = buffer + u32_to_bytes(const_count)
+    buffer = buffer + u32_to_bytes(func_count)
+    
+    // Placeholder CRC (would be calculated on full bytecode)
+    buffer = buffer + u32_to_bytes(0)
+    
+    // Serialize instructions
+    for instr in bytecode.instructions {
+        buffer = buffer + chr(instr.opcode)
+        buffer = buffer + u32_to_bytes(instr.operand1)
+        buffer = buffer + u32_to_bytes(instr.operand2)
+        buffer = buffer + u32_to_bytes(instr.operand3)
+    }
+    
+    // Serialize constants (simplified: store as strings)
+    for const_val in bytecode.constants {
+        const_str = const_val as string
+        buffer = buffer + u32_to_bytes(len(const_str))
+        buffer = buffer + const_str
+    }
+    
+    // Serialize function indices
+    for func_idx in bytecode.functions {
+        buffer = buffer + u32_to_bytes(func_idx)
+    }
+    
+    return buffer
+}
+
+// Deserialize bytecode from binary format
+fn bytecode_deserialize(buffer: string) -> Bytecode {
+    if len(buffer) < 16 {
+        return null
+    }
+    
+    // Check magic and version
+    if buffer[0:4] != "ZBEN" {
+        return null
+    }
+    
+    version = buffer[4] as int
+    if version != 1 {
+        return null
+    }
+    
+    // Parse header
+    pos = 6
+    instr_count = bytes_to_u32(buffer[pos:pos+4])
+    pos = pos + 4
+    const_count = bytes_to_u32(buffer[pos:pos+4])
+    pos = pos + 4
+    func_count = bytes_to_u32(buffer[pos:pos+4])
+    pos = pos + 4
+    
+    // Skip CRC
+    pos = pos + 4
+    
+    // Parse instructions
+    instructions = []
+    for i = 0; i < instr_count; i = i + 1 {
+        if pos + 13 > len(buffer) {
+            return null
+        }
+        
+        opcode = buffer[pos] as int
+        pos = pos + 1
+        op1 = bytes_to_u32(buffer[pos:pos+4])
+        pos = pos + 4
+        op2 = bytes_to_u32(buffer[pos:pos+4])
+        pos = pos + 4
+        op3 = bytes_to_u32(buffer[pos:pos+4])
+        pos = pos + 4
+        
+        instr = {
+            opcode: opcode,
+            operand1: op1,
+            operand2: op2,
+            operand3: op3,
+            line: 0,
+            column: 0
+        }
+        instructions = append_instr(instructions, instr)
+    }
+    
+    // Parse constants
+    constants = []
+    for i = 0; i < const_count; i = i + 1 {
+        if pos + 4 > len(buffer) {
+            return null
+        }
+        
+        const_len = bytes_to_u32(buffer[pos:pos+4])
+        pos = pos + 4
+        
+        if pos + const_len > len(buffer) {
+            return null
+        }
+        
+        const_str = buffer[pos:pos+const_len]
+        pos = pos + const_len
+        constants = append_const(constants, const_str)
+    }
+    
+    // Parse functions
+    functions = []
+    for i = 0; i < func_count; i = i + 1 {
+        if pos + 4 > len(buffer) {
+            return null
+        }
+        
+        func_idx = bytes_to_u32(buffer[pos:pos+4])
+        pos = pos + 4
+        functions = append_func(functions, func_idx)
+    }
+    
+    // Build bytecode struct
+    bytecode = {
+        instructions: instructions,
+        constants: constants,
+        functions: functions,
+        symbol_table: {},
+        line_info: []
+    }
+    
+    return bytecode
+}
+
+// Helper: Convert u32 to 4-byte string (little-endian)
+fn u32_to_bytes(val: int) -> string {
+    b0 = chr(val & 0xFF)
+    b1 = chr((val >> 8) & 0xFF)
+    b2 = chr((val >> 16) & 0xFF)
+    b3 = chr((val >> 24) & 0xFF)
+    return b0 + b1 + b2 + b3
+}
+
+// Helper: Convert 4-byte string to u32 (little-endian)
+fn bytes_to_u32(bytes: string) -> int {
+    if len(bytes) < 4 {
+        return 0
+    }
+    
+    b0 = bytes[0] as int
+    b1 = bytes[1] as int
+    b2 = bytes[2] as int
+    b3 = bytes[3] as int
+    
+    return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+}
+
+// Helper: Append instruction to array
+fn append_instr(arr: array[Instruction], instr: Instruction) -> array[Instruction] {
+    return arr  // Placeholder: would use native array append
+}
+
+// Helper: Append constant to array
+fn append_const(arr: array[any], const_val: any) -> array[any] {
+    return arr  // Placeholder
+}
+
+// Helper: Append function to array
+fn append_func(arr: array[int], func_idx: int) -> array[int] {
+    return arr  // Placeholder
+}
+
+// Helper: Character from code point
+fn chr(code: int) -> string {
+    // Convert integer to single-character string
+    return ""  // Placeholder: would use builtin chr()
+}
+

@@ -1,0 +1,28 @@
+// Minimal Zenith example — simple arithmetic and data types
+// Focuses on what the compiler and VM can currently handle
+
+fn main()
+    // Simple integer arithmetic
+    let x = 42
+    let y = 8
+    let sum = x + y
+    
+    // Boolean logic
+    let is_true = true
+    
+    // Null value
+    let nothing = null
+    
+    // String value
+    let greeting = "Hello, Zenith!"
+    
+    // Array of integers
+    let numbers = [1, 2, 3, 4, 5]
+    
+    // Index access
+    let first = numbers[0]
+    
+    // Return nothing
+    null
+end
+

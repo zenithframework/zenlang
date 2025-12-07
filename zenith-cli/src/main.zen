@@ -1,0 +1,38 @@
+// Zenith CLI Entry Point
+// File: zenith-cli/src/main.zen
+
+// Import necessary core libraries (these would be part of Zenith's standard library)
+import core::os::{args};
+import core::console::{print, println};
+
+// Import command handlers
+import commands::new;
+import commands::make_controller;
+import commands::make_model;
+import commands::help;
+
+// The main function is the entry point for any executable.
+fn main() {
+    let arguments: array<string> = args.getAll();
+
+    // The first argument is typically the executable name, so we check the second.
+    if arguments.length() < 2 {
+        help.show_general_help();
+        return;
+    }
+
+    // A simple command router
+    let command: string = arguments[1];
+
+    match command {
+        "new" => new.handle(arguments.slice(2)),
+        "make:controller" => make_controller.handle(arguments.slice(2)),
+        "make:model" => make_model.handle(arguments.slice(2)),
+        "help" => help.show_general_help(),
+        "--version" => println("Zenith CLI version 0.1.0"),
+        _ => {
+            println("Error: Unknown command '" + command + "'");
+            help.show_general_help();
+        }
+    }
+}

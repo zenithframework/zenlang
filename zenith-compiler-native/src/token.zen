@@ -1,0 +1,277 @@
+// Zenith Compiler - Token Types and Definitions
+// File: token.zen
+// Purpose: Define all token types used by the lexer
+
+component TokenType {
+    // Literal types
+    const INT = 0
+    const FLOAT = 1
+    const STRING = 2
+    const IDENTIFIER = 3
+    
+    // Keywords
+    const LET = 10
+    const CONST = 11
+    const FN = 12
+    const RETURN = 13
+    const IF = 14
+    const ELSE = 15
+    const FOR = 16
+    const WHILE = 17
+    const LOOP = 18
+    const BREAK = 19
+    const CONTINUE = 20
+    const CLASS = 21
+    const EXTENDS = 22
+    const NEW = 23
+    const THIS = 24
+    const SELF = 25
+    const PAGE = 26
+    const COMPONENT = 27
+    const PROPS = 28
+    const RENDER = 29
+    const LIFECYCLE = 30
+    const PRIVATE = 31
+    const PUBLIC = 32
+    const PROTECTED = 33
+    const STATIC = 34
+    const ASYNC = 35
+    const AWAIT = 36
+    const TRY = 37
+    const CATCH = 38
+    const FINALLY = 39
+    const THROW = 40
+    const MATCH = 41
+    const IMPORT = 42
+    const EXPORT = 43
+    const FROM = 44
+    const AS = 45
+    const MODULE = 46
+    const TRUE = 47
+    const FALSE = 48
+    const NULL = 49
+    const UNDEFINED = 50
+    
+    // Operators (Arithmetic)
+    const PLUS = 60
+    const MINUS = 61
+    const STAR = 62
+    const SLASH = 63
+    const PERCENT = 64
+    const POWER = 65           // **
+    
+    // Operators (Comparison)
+    const EQ = 70              // ==
+    const NOT_EQ = 71          // !=
+    const LT = 72              // <
+    const LTE = 73             // <=
+    const GT = 74              // >
+    const GTE = 75             // >=
+    const SPACESHIP = 76       // <=>
+    
+    // Operators (Logical)
+    const AND = 80             // &&
+    const OR = 81              // ||
+    const NOT = 82             // !
+    const QUESTION = 83        // ? (ternary)
+    
+    // Operators (Assignment)
+    const ASSIGN = 90          // =
+    const PLUS_ASSIGN = 91     // +=
+    const MINUS_ASSIGN = 92    // -=
+    const STAR_ASSIGN = 93     // *=
+    const SLASH_ASSIGN = 94    // /=
+    const MOD_ASSIGN = 95      // %=
+    const AND_ASSIGN = 96      // &&=
+    const OR_ASSIGN = 97       // ||=
+    
+    // Operators (Bitwise)
+    const BIT_AND = 100        // &
+    const BIT_OR = 101         // |
+    const BIT_XOR = 102        // ^
+    const BIT_NOT = 103        // ~
+    const LSHIFT = 104         // <<
+    const RSHIFT = 105         // >>
+    
+    // Operators (Other)
+    const ARROW = 110          // =>
+    const DOUBLE_COLON = 111   // ::
+    const DOT = 112            // .
+    const OPTIONAL = 113       // ?.
+    const SPREAD = 114         // ...
+    const PIPE = 115           // |
+    
+    // Delimiters
+    const LPAREN = 120         // (
+    const RPAREN = 121         // )
+    const LBRACE = 122         // {
+    const RBRACE = 123         // }
+    const LBRACKET = 124       // [
+    const RBRACKET = 125       // ]
+    const LANGLE = 126         // <
+    const RANGLE = 127         // >
+    const COMMA = 128          // ,
+    const SEMICOLON = 129      // ;
+    const COLON = 130          // :
+    const AT = 131             // @ (decorators)
+    const HASH = 132           // # (channels, comments)
+    
+    // Special
+    const EOF = 200
+    const ILLEGAL = 201
+    const NEWLINE = 202
+    const INDENT = 203
+    const DEDENT = 204
+    const COMMENT = 205
+}
+
+// Token structure - 32 bytes per token (optimized for cache efficiency)
+component Token {
+    type: int               // TokenType (0-255)
+    line: int              // Line number (1-indexed)
+    column: int            // Column number (1-indexed)
+    length: int            // Token length in characters
+    value: string          // Token value/literal
+    
+    fn new(type: int, line: int, column: int, value: string) -> Token {
+        return Token {
+            type: type,
+            line: line,
+            column: column,
+            length: len(value),
+            value: value
+        }
+    }
+    
+    fn type_name() -> string {
+        match type {
+            TokenType.INT -> return "INT"
+            TokenType.FLOAT -> return "FLOAT"
+            TokenType.STRING -> return "STRING"
+            TokenType.IDENTIFIER -> return "IDENTIFIER"
+            TokenType.LET -> return "LET"
+            TokenType.CONST -> return "CONST"
+            TokenType.FN -> return "FN"
+            TokenType.RETURN -> return "RETURN"
+            TokenType.IF -> return "IF"
+            TokenType.ELSE -> return "ELSE"
+            TokenType.FOR -> return "FOR"
+            TokenType.WHILE -> return "WHILE"
+            TokenType.CLASS -> return "CLASS"
+            TokenType.PAGE -> return "PAGE"
+            TokenType.COMPONENT -> return "COMPONENT"
+            TokenType.TRUE -> return "TRUE"
+            TokenType.FALSE -> return "FALSE"
+            TokenType.NULL -> return "NULL"
+            TokenType.PLUS -> return "PLUS"
+            TokenType.MINUS -> return "MINUS"
+            TokenType.STAR -> return "STAR"
+            TokenType.SLASH -> return "SLASH"
+            TokenType.EQ -> return "EQ"
+            TokenType.NOT_EQ -> return "NOT_EQ"
+            TokenType.LT -> return "LT"
+            TokenType.GT -> return "GT"
+            TokenType.LPAREN -> return "LPAREN"
+            TokenType.RPAREN -> return "RPAREN"
+            TokenType.LBRACE -> return "LBRACE"
+            TokenType.RBRACE -> return "RBRACE"
+            TokenType.COMMA -> return "COMMA"
+            TokenType.SEMICOLON -> return "SEMICOLON"
+            TokenType.EOF -> return "EOF"
+            TokenType.ILLEGAL -> return "ILLEGAL"
+            default -> return "UNKNOWN"
+        }
+    }
+}
+
+// Keyword lookup table - optimized for O(1) access
+const KEYWORDS = {
+    "let": TokenType.LET,
+    "const": TokenType.CONST,
+    "fn": TokenType.FN,
+    "return": TokenType.RETURN,
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "for": TokenType.FOR,
+    "while": TokenType.WHILE,
+    "loop": TokenType.LOOP,
+    "break": TokenType.BREAK,
+    "continue": TokenType.CONTINUE,
+    "class": TokenType.CLASS,
+    "extends": TokenType.EXTENDS,
+    "new": TokenType.NEW,
+    "this": TokenType.THIS,
+    "self": TokenType.SELF,
+    "page": TokenType.PAGE,
+    "component": TokenType.COMPONENT,
+    "props": TokenType.PROPS,
+    "render": TokenType.RENDER,
+    "private": TokenType.PRIVATE,
+    "public": TokenType.PUBLIC,
+    "protected": TokenType.PROTECTED,
+    "static": TokenType.STATIC,
+    "async": TokenType.ASYNC,
+    "await": TokenType.AWAIT,
+    "try": TokenType.TRY,
+    "catch": TokenType.CATCH,
+    "finally": TokenType.FINALLY,
+    "throw": TokenType.THROW,
+    "match": TokenType.MATCH,
+    "import": TokenType.IMPORT,
+    "export": TokenType.EXPORT,
+    "from": TokenType.FROM,
+    "as": TokenType.AS,
+    "module": TokenType.MODULE,
+    "true": TokenType.TRUE,
+    "false": TokenType.FALSE,
+    "null": TokenType.NULL,
+    "undefined": TokenType.UNDEFINED,
+}
+
+// Lookup identifier - return token type if keyword, else IDENTIFIER
+fn lookup_identifier(ident: string) -> int {
+    if ident in KEYWORDS {
+        return KEYWORDS[ident]
+    }
+    return TokenType.IDENTIFIER
+}
+
+// Check if character is whitespace (optimized)
+fn is_whitespace(ch: byte) -> bool {
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'
+}
+
+// Check if character starts an identifier
+fn is_identifier_start(ch: byte) -> bool {
+    return (ch >= 'a' && ch <= 'z') || 
+           (ch >= 'A' && ch <= 'Z') || 
+           ch == '_'
+}
+
+// Check if character continues an identifier
+fn is_identifier_continue(ch: byte) -> bool {
+    return is_identifier_start(ch) || 
+           (ch >= '0' && ch <= '9')
+}
+
+// Check if character is a digit
+fn is_digit(ch: byte) -> bool {
+    return ch >= '0' && ch <= '9'
+}
+
+// Check if character is hex digit
+fn is_hex_digit(ch: byte) -> bool {
+    return is_digit(ch) || 
+           (ch >= 'a' && ch <= 'f') || 
+           (ch >= 'A' && ch <= 'F')
+}
+
+// Check if character is octal digit
+fn is_octal_digit(ch: byte) -> bool {
+    return ch >= '0' && ch <= '7'
+}
+
+// Check if character is binary digit
+fn is_binary_digit(ch: byte) -> bool {
+    return ch == '0' || ch == '1'
+}

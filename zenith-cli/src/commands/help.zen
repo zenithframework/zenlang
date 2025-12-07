@@ -1,0 +1,17 @@
+// Command: help
+// File: zenith-cli/src/commands/help.zen
+import core::console::{println};
+
+fn show_general_help() {
+    println("Zenith Framework CLI");
+    println("");
+    println("Usage:");
+    println("  zen <command> [options] [arguments]");
+    println("");
+    println("Available commands:");
+    println("  new              Create a new Zenith project.");
+    println("  make:controller  Create a new controller class.");
+    println("  make:model       Create a new model class.");
+    println("  help             Display this help message.");
+    println("");
+}

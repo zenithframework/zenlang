@@ -1,0 +1,38 @@
+# Build artifacts
+bin/
+build/
+dist/
+*.zbc
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.bak
+backup/
+temp/
+
+# Documentation build artifacts
+docs/_build/
+site/
+
+# Logs
+*.log
+npm-debug.log

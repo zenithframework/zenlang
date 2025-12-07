@@ -1,0 +1,429 @@
+// Zenith Runtime Object System
+// Owner: Zenith Framework
+// Type system and object representation for Zenith runtime
+
+// Type constants
+const TYPE_NULL = 0
+const TYPE_INTEGER = 1
+const TYPE_FLOAT = 2
+const TYPE_STRING = 3
+const TYPE_BOOLEAN = 4
+const TYPE_ARRAY = 5
+const TYPE_MAP = 6
+const TYPE_FUNCTION = 7
+const TYPE_BUILTIN = 8
+const TYPE_OBJECT = 9
+const TYPE_CLASS = 10
+
+// Object header (used for GC and type information)
+struct ObjectHeader
+    type: int
+    size: int
+    marked: bool
+    next: ObjectHeader?
+end
+
+// Null object (singleton)
+struct NullObject
+    type: int
+end
+
+// Integer object
+struct IntegerObject
+    type: int
+    value: int
+end
+
+// Float object
+struct FloatObject
+    type: int
+    value: float
+end
+
+// String object
+struct StringObject
+    type: int
+    value: string
+    length: int
+end
+
+// Boolean object
+struct BooleanObject
+    type: int
+    value: bool
+end
+
+// Array object
+struct ArrayObject
+    type: int
+    elements: array[Object]
+    length: int
+end
+
+// Map object (key-value pairs)
+struct MapObject
+    type: int
+    pairs: map[string]Object
+    length: int
+end
+
+// Function object
+struct FunctionObject
+    type: int
+    arity: int  // number of parameters
+    body: array[int]  // compiled bytecode
+    params: array[string]
+    env: Environment?
+end
+
+// Builtin function
+struct BuiltinObject
+    type: int
+    arity: int
+    name: string
+    func: fn(args: array[Object]) -> Object
+end
+
+// Class definition
+struct ClassObject
+    type: int
+    name: string
+    methods: map[string]FunctionObject
+    properties: map[string]Object
+    parent: ClassObject?
+end
+
+// Instance of a class
+struct InstanceObject
+    type: int
+    class: ClassObject
+    fields: map[string]Object
+end
+
+// Environment for variable scoping
+struct Environment
+    values: map[string]Object
+    parent: Environment?
+end
+
+// Create null object
+fn new_null() -> NullObject
+    return NullObject{ type: TYPE_NULL }
+end
+
+// Create integer object
+fn new_integer(value: int) -> IntegerObject
+    return IntegerObject{ type: TYPE_INTEGER, value: value }
+end
+
+// Create float object
+fn new_float(value: float) -> FloatObject
+    return FloatObject{ type: TYPE_FLOAT, value: value }
+end
+
+// Create string object
+fn new_string(value: string) -> StringObject
+    return StringObject{
+        type: TYPE_STRING,
+        value: value,
+        length: len(value)
+    }
+end
+
+// Create boolean object
+fn new_boolean(value: bool) -> BooleanObject
+    return BooleanObject{ type: TYPE_BOOLEAN, value: value }
+end
+
+// Create array object
+fn new_array(capacity: int) -> ArrayObject
+    mut elements = []
+    mut i = 0
+    while i < capacity
+        elements.push(new_null())
+        i = i + 1
+    end
+    
+    return ArrayObject{
+        type: TYPE_ARRAY,
+        elements: elements,
+        length: 0
+    }
+end
+
+// Create map object
+fn new_map() -> MapObject
+    return MapObject{
+        type: TYPE_MAP,
+        pairs: {},
+        length: 0
+    }
+end
+
+// Create function object
+fn new_function(arity: int, body: array[int], params: array[string]) -> FunctionObject
+    return FunctionObject{
+        type: TYPE_FUNCTION,
+        arity: arity,
+        body: body,
+        params: params,
+        env: null
+    }
+end
+
+// Create class object
+fn new_class(name: string) -> ClassObject
+    return ClassObject{
+        type: TYPE_CLASS,
+        name: name,
+        methods: {},
+        properties: {},
+        parent: null
+    }
+end
+
+// Create instance object
+fn new_instance(class: ClassObject) -> InstanceObject
+    return InstanceObject{
+        type: TYPE_OBJECT,
+        class: class,
+        fields: {}
+    }
+end
+
+// Type checking functions
+fn is_null(obj: Object) -> bool
+    return obj.type == TYPE_NULL
+end
+
+fn is_integer(obj: Object) -> bool
+    return obj.type == TYPE_INTEGER
+end
+
+fn is_float(obj: Object) -> bool
+    return obj.type == TYPE_FLOAT
+end
+
+fn is_string(obj: Object) -> bool
+    return obj.type == TYPE_STRING
+end
+
+fn is_boolean(obj: Object) -> bool
+    return obj.type == TYPE_BOOLEAN
+end
+
+fn is_array(obj: Object) -> bool
+    return obj.type == TYPE_ARRAY
+end
+
+fn is_map(obj: Object) -> bool
+    return obj.type == TYPE_MAP
+end
+
+fn is_function(obj: Object) -> bool
+    return obj.type == TYPE_FUNCTION
+end
+
+fn is_class(obj: Object) -> bool
+    return obj.type == TYPE_CLASS
+end
+
+fn is_instance(obj: Object) -> bool
+    return obj.type == TYPE_OBJECT
+end
+
+// Object inspection functions
+fn object_type_name(obj: Object) -> string
+    if obj.type == TYPE_NULL
+        return "null"
+    elif obj.type == TYPE_INTEGER
+        return "int"
+    elif obj.type == TYPE_FLOAT
+        return "float"
+    elif obj.type == TYPE_STRING
+        return "string"
+    elif obj.type == TYPE_BOOLEAN
+        return "bool"
+    elif obj.type == TYPE_ARRAY
+        return "array"
+    elif obj.type == TYPE_MAP
+        return "map"
+    elif obj.type == TYPE_FUNCTION
+        return "function"
+    elif obj.type == TYPE_CLASS
+        return "class"
+    elif obj.type == TYPE_OBJECT
+        return "object"
+    else
+        return "unknown"
+    end
+end
+
+fn object_to_string(obj: Object) -> string
+    if obj.type == TYPE_NULL
+        return "null"
+    elif obj.type == TYPE_INTEGER
+        mut int_obj = obj as IntegerObject
+        return int_to_string(int_obj.value)
+    elif obj.type == TYPE_FLOAT
+        mut float_obj = obj as FloatObject
+        return float_to_string(float_obj.value)
+    elif obj.type == TYPE_STRING
+        mut str_obj = obj as StringObject
+        return str_obj.value
+    elif obj.type == TYPE_BOOLEAN
+        mut bool_obj = obj as BooleanObject
+        return if bool_obj.value then "true" else "false" end
+    elif obj.type == TYPE_ARRAY
+        return "[Array]"
+    elif obj.type == TYPE_MAP
+        return "{Map}"
+    elif obj.type == TYPE_FUNCTION
+        return "<function>"
+    elif obj.type == TYPE_CLASS
+        mut class_obj = obj as ClassObject
+        return "<class " + class_obj.name + ">"
+    elif obj.type == TYPE_OBJECT
+        mut inst_obj = obj as InstanceObject
+        return "<" + inst_obj.class.name + " instance>"
+    else
+        return "unknown"
+    end
+end
+
+fn object_is_truthy(obj: Object) -> bool
+    if obj.type == TYPE_NULL
+        return false
+    elif obj.type == TYPE_BOOLEAN
+        mut bool_obj = obj as BooleanObject
+        return bool_obj.value
+    elif obj.type == TYPE_INTEGER
+        mut int_obj = obj as IntegerObject
+        return int_obj.value != 0
+    elif obj.type == TYPE_FLOAT
+        mut float_obj = obj as FloatObject
+        return float_obj.value != 0.0
+    else
+        return true
+    end
+end
+
+// Object comparison
+fn objects_equal(left: Object, right: Object) -> bool
+    if left.type != right.type
+        return false
+    end
+    
+    if left.type == TYPE_NULL
+        return true
+    elif left.type == TYPE_INTEGER
+        mut left_int = left as IntegerObject
+        mut right_int = right as IntegerObject
+        return left_int.value == right_int.value
+    elif left.type == TYPE_FLOAT
+        mut left_float = left as FloatObject
+        mut right_float = right as FloatObject
+        return left_float.value == right_float.value
+    elif left.type == TYPE_STRING
+        mut left_str = left as StringObject
+        mut right_str = right as StringObject
+        return left_str.value == right_str.value
+    elif left.type == TYPE_BOOLEAN
+        mut left_bool = left as BooleanObject
+        mut right_bool = right as BooleanObject
+        return left_bool.value == right_bool.value
+    else
+        return left == right  // Reference equality for complex types
+    end
+end
+
+// Array operations
+fn array_push(arr: ArrayObject, obj: Object)
+    arr.elements.push(obj)
+    arr.length = arr.length + 1
+end
+
+fn array_pop(arr: ArrayObject) -> Object
+    if arr.length > 0
+        arr.length = arr.length - 1
+        return arr.elements.pop()
+    end
+    return new_null()
+end
+
+fn array_get(arr: ArrayObject, index: int) -> Object
+    if index >= 0 and index < arr.length
+        return arr.elements[index]
+    end
+    return new_null()
+end
+
+fn array_set(arr: ArrayObject, index: int, obj: Object)
+    if index >= 0 and index < arr.length
+        arr.elements[index] = obj
+    end
+end
+
+// Map operations
+fn map_set(map: MapObject, key: string, value: Object)
+    map.pairs[key] = value
+    map.length = map.length + 1
+end
+
+fn map_get(map: MapObject, key: string) -> Object
+    if key in map.pairs
+        return map.pairs[key]
+    end
+    return new_null()
+end
+
+fn map_has(map: MapObject, key: string) -> bool
+    return key in map.pairs
+end
+
+// Environment operations
+fn env_new(parent: Environment?) -> Environment
+    return Environment{
+        values: {},
+        parent: parent
+    }
+end
+
+fn env_set(env: Environment, name: string, value: Object)
+    env.values[name] = value
+end
+
+fn env_get(env: Environment, name: string) -> Object?
+    if name in env.values
+        return env.values[name]
+    elif env.parent != null
+        return env_get(env.parent, name)
+    end
+    return null
+end
+
+fn env_exists(env: Environment, name: string) -> bool
+    if name in env.values
+        return true
+    elif env.parent != null
+        return env_exists(env.parent, name)
+    end
+    return false
+end
+
+// Helper conversion functions
+fn int_to_string(value: int) -> string
+    return str(value)
+end
+
+fn float_to_string(value: float) -> string
+    return str(value)
+end
+
+fn string_to_int(value: string) -> int
+    return int(value)
+end
+
+fn string_to_float(value: string) -> float
+    return float(value)
+end

@@ -1,0 +1,490 @@
+// Zenith Bytecode Compiler - AST to Bytecode
+// Owner: Zenith Framework
+// Pure Zenith implementation - converts AST to optimized bytecode
+
+// Bytecode instruction set
+const OpCode_Constant = 0
+const OpCode_Pop = 1
+const OpCode_True = 2
+const OpCode_False = 3
+const OpCode_Null = 4
+const OpCode_Add = 5
+const OpCode_Subtract = 6
+const OpCode_Multiply = 7
+const OpCode_Divide = 8
+const OpCode_Modulo = 9
+const OpCode_Power = 10
+const OpCode_Equal = 11
+const OpCode_NotEqual = 12
+const OpCode_LessThan = 13
+const OpCode_LessThanOrEqual = 14
+const OpCode_GreaterThan = 15
+const OpCode_GreaterThanOrEqual = 16
+const OpCode_And = 17
+const OpCode_Or = 18
+const OpCode_Not = 19
+const OpCode_Negate = 20
+const OpCode_BitwiseAnd = 21
+const OpCode_BitwiseOr = 22
+const OpCode_BitwiseXor = 23
+const OpCode_BitwiseNot = 24
+const OpCode_LeftShift = 25
+const OpCode_RightShift = 26
+const OpCode_Jump = 27
+const OpCode_JumpIfFalse = 28
+const OpCode_Call = 29
+const OpCode_Return = 30
+const OpCode_Set = 31
+const OpCode_Get = 32
+const OpCode_Array = 33
+const OpCode_Map = 34
+const OpCode_Index = 35
+const OpCode_SetIndex = 36
+
+// Compiled bytecode structure
+struct Bytecode
+    instructions: array[int]
+    constants: array[Value]
+    symbol_table: map[string]Symbol]
+    scopes: array[Scope]
+end
+
+// Symbol table entry
+struct Symbol
+    name: string
+    scope: int
+    index: int
+    is_defined: bool
+end
+
+// Scope information
+struct Scope
+    locals: map[string]Symbol
+    local_count: int
+    parent: Scope?
+end
+
+// Compiler state
+struct Compiler
+    bytecode: Bytecode
+    current_scope: int
+    scopes: array[Scope]
+    errors: array[string]
+    optimization_enabled: bool
+end
+
+// Create new compiler
+fn Compiler.new() -> Compiler
+    mut compiler = Compiler{
+        bytecode: Bytecode{
+            instructions: [],
+            constants: [],
+            symbol_table: {},
+            scopes: []
+        },
+        current_scope: 0,
+        scopes: [],
+        errors: [],
+        optimization_enabled: true
+    }
+    return compiler
+end
+
+// Compile AST to bytecode
+fn compile(compiler: Compiler, program: ASTNode) -> array[int]
+    mut root = program as ProgramNode
+    
+    for statement in root.statements
+        compile_statement(compiler, statement)
+    end
+    
+    return compiler.bytecode.instructions
+end
+
+// Compile statement
+fn compile_statement(compiler: Compiler, stmt: ASTNode)
+    if stmt.type == NodeType.LetStatement
+        compile_let_statement(compiler, stmt)
+    elif stmt.type == NodeType.ConstStatement
+        compile_const_statement(compiler, stmt)
+    elif stmt.type == NodeType.ReturnStatement
+        compile_return_statement(compiler, stmt)
+    elif stmt.type == NodeType.ExpressionStatement
+        compile_expression_statement(compiler, stmt)
+    elif stmt.type == NodeType.BlockStatement
+        compile_block_statement(compiler, stmt)
+    elif stmt.type == NodeType.IfStatement
+        compile_if_statement(compiler, stmt)
+    elif stmt.type == NodeType.ForStatement
+        compile_for_statement(compiler, stmt)
+    elif stmt.type == NodeType.WhileStatement
+        compile_while_statement(compiler, stmt)
+    elif stmt.type == NodeType.FunctionStatement
+        compile_function_statement(compiler, stmt)
+    end
+end
+
+// Compile let statement
+fn compile_let_statement(compiler: Compiler, stmt: ASTNode)
+    mut let_stmt = stmt as LetStatement
+    
+    // Compile expression
+    compile_expression(compiler, let_stmt.value)
+    
+    // Set variable
+    let_name = let_stmt.name.value
+    emit_op(compiler, OpCode_Set)
+    emit_int(compiler, add_symbol(compiler, let_name))
+end
+
+// Compile const statement
+fn compile_const_statement(compiler: Compiler, stmt: ASTNode)
+    mut const_stmt = stmt as ConstStatement
+    
+    // Compile expression
+    compile_expression(compiler, const_stmt.value)
+    
+    // Store in constants
+    let_name = const_stmt.name.value
+    emit_op(compiler, OpCode_Constant)
+    emit_int(compiler, add_constant(compiler, const_stmt.value))
+end
+
+// Compile return statement
+fn compile_return_statement(compiler: Compiler, stmt: ASTNode)
+    mut ret_stmt = stmt as ReturnStatement
+    
+    compile_expression(compiler, ret_stmt.value)
+    emit_op(compiler, OpCode_Return)
+end
+
+// Compile expression statement
+fn compile_expression_statement(compiler: Compiler, stmt: ASTNode)
+    mut expr_stmt = stmt as ExpressionStatement
+    compile_expression(compiler, expr_stmt.expression)
+    emit_op(compiler, OpCode_Pop)
+end
+
+// Compile block statement
+fn compile_block_statement(compiler: Compiler, stmt: ASTNode)
+    mut block = stmt as BlockStatement
+    
+    for statement in block.statements
+        compile_statement(compiler, statement)
+    end
+end
+
+// Compile if statement
+fn compile_if_statement(compiler: Compiler, stmt: ASTNode)
+    mut if_stmt = stmt as IfStatement
+    
+    // Compile condition
+    compile_expression(compiler, if_stmt.condition)
+    
+    // Emit jump-if-false
+    mut jump_pos = len(compiler.bytecode.instructions)
+    emit_op(compiler, OpCode_JumpIfFalse)
+    emit_int(compiler, 0)  // Placeholder
+    
+    // Compile consequence
+    compile_statement(compiler, if_stmt.consequence)
+    emit_op(compiler, OpCode_Pop)
+    
+    // Patch jump address
+    compiler.bytecode.instructions[jump_pos + 1] = len(compiler.bytecode.instructions)
+    
+    // Compile alternative if exists
+    if if_stmt.alternative != null
+        compile_statement(compiler, if_stmt.alternative)
+    end
+end
+
+// Compile for statement
+fn compile_for_statement(compiler: Compiler, stmt: ASTNode)
+    mut for_stmt = stmt as ForStatement
+    
+    // Compile init
+    if for_stmt.init != null
+        compile_statement(compiler, for_stmt.init)
+    end
+    
+    // Loop start
+    mut loop_start = len(compiler.bytecode.instructions)
+    
+    // Compile condition
+    compile_expression(compiler, for_stmt.condition)
+    
+    // Jump-if-false out of loop
+    mut jump_pos = len(compiler.bytecode.instructions)
+    emit_op(compiler, OpCode_JumpIfFalse)
+    emit_int(compiler, 0)  // Placeholder
+    
+    // Compile body
+    compile_statement(compiler, for_stmt.body)
+    emit_op(compiler, OpCode_Pop)
+    
+    // Compile update
+    if for_stmt.update != null
+        compile_expression(compiler, for_stmt.update)
+        emit_op(compiler, OpCode_Pop)
+    end
+    
+    // Jump back to condition
+    emit_op(compiler, OpCode_Jump)
+    emit_int(compiler, loop_start)
+    
+    // Patch loop exit jump
+    compiler.bytecode.instructions[jump_pos + 1] = len(compiler.bytecode.instructions)
+end
+
+// Compile while statement
+fn compile_while_statement(compiler: Compiler, stmt: ASTNode)
+    mut while_stmt = stmt as WhileStatement
+    
+    // Loop start
+    mut loop_start = len(compiler.bytecode.instructions)
+    
+    // Compile condition
+    compile_expression(compiler, while_stmt.condition)
+    
+    // Jump-if-false out of loop
+    mut jump_pos = len(compiler.bytecode.instructions)
+    emit_op(compiler, OpCode_JumpIfFalse)
+    emit_int(compiler, 0)  // Placeholder
+    
+    // Compile body
+    compile_statement(compiler, while_stmt.body)
+    emit_op(compiler, OpCode_Pop)
+    
+    // Jump back to condition
+    emit_op(compiler, OpCode_Jump)
+    emit_int(compiler, loop_start)
+    
+    // Patch loop exit jump
+    compiler.bytecode.instructions[jump_pos + 1] = len(compiler.bytecode.instructions)
+end
+
+// Compile function statement
+fn compile_function_statement(compiler: Compiler, stmt: ASTNode)
+    mut func_stmt = stmt as FunctionStatement
+    
+    // Create new scope
+    push_scope(compiler)
+    
+    // Compile function body
+    for statement in func_stmt.body.statements
+        compile_statement(compiler, statement)
+    end
+    
+    // Return null if no explicit return
+    emit_op(compiler, OpCode_Null)
+    emit_op(compiler, OpCode_Return)
+    
+    pop_scope(compiler)
+end
+
+// Compile expression
+fn compile_expression(compiler: Compiler, expr: ASTNode)
+    if expr.type == NodeType.IntegerLiteral
+        compile_integer_literal(compiler, expr)
+    elif expr.type == NodeType.FloatLiteral
+        compile_float_literal(compiler, expr)
+    elif expr.type == NodeType.StringLiteral
+        compile_string_literal(compiler, expr)
+    elif expr.type == NodeType.BooleanLiteral
+        compile_boolean_literal(compiler, expr)
+    elif expr.type == NodeType.NullLiteral
+        emit_op(compiler, OpCode_Null)
+    elif expr.type == NodeType.Identifier
+        compile_identifier(compiler, expr)
+    elif expr.type == NodeType.ArrayLiteral
+        compile_array_literal(compiler, expr)
+    elif expr.type == NodeType.MapLiteral
+        compile_map_literal(compiler, expr)
+    elif expr.type == NodeType.PrefixExpression
+        compile_prefix_expression(compiler, expr)
+    elif expr.type == NodeType.InfixExpression
+        compile_infix_expression(compiler, expr)
+    elif expr.type == NodeType.CallExpression
+        compile_call_expression(compiler, expr)
+    elif expr.type == NodeType.IndexExpression
+        compile_index_expression(compiler, expr)
+    end
+end
+
+// Helper functions
+fn compile_integer_literal(compiler: Compiler, expr: ASTNode)
+    mut lit = expr as IntegerLiteral
+    emit_op(compiler, OpCode_Constant)
+    emit_int(compiler, add_constant(compiler, Value.Integer(lit.value)))
+end
+
+fn compile_float_literal(compiler: Compiler, expr: ASTNode)
+    mut lit = expr as FloatLiteral
+    emit_op(compiler, OpCode_Constant)
+    emit_int(compiler, add_constant(compiler, Value.Float(lit.value)))
+end
+
+fn compile_string_literal(compiler: Compiler, expr: ASTNode)
+    mut lit = expr as StringLiteral
+    emit_op(compiler, OpCode_Constant)
+    emit_int(compiler, add_constant(compiler, Value.String(lit.value)))
+end
+
+fn compile_boolean_literal(compiler: Compiler, expr: ASTNode)
+    mut lit = expr as BooleanLiteral
+    if lit.value
+        emit_op(compiler, OpCode_True)
+    else
+        emit_op(compiler, OpCode_False)
+    end
+end
+
+fn compile_identifier(compiler: Compiler, expr: ASTNode)
+    mut ident = expr as Identifier
+    emit_op(compiler, OpCode_Get)
+    emit_int(compiler, lookup_symbol(compiler, ident.value))
+end
+
+fn compile_array_literal(compiler: Compiler, expr: ASTNode)
+    mut arr = expr as ArrayLiteral
+    
+    for element in arr.elements
+        compile_expression(compiler, element)
+    end
+    
+    emit_op(compiler, OpCode_Array)
+    emit_int(compiler, len(arr.elements))
+end
+
+fn compile_map_literal(compiler: Compiler, expr: ASTNode)
+    mut map = expr as MapLiteral
+    
+    for pair in map.pairs
+        compile_expression(compiler, pair.key)
+        compile_expression(compiler, pair.value)
+    end
+    
+    emit_op(compiler, OpCode_Map)
+    emit_int(compiler, len(map.pairs))
+end
+
+fn compile_prefix_expression(compiler: Compiler, expr: ASTNode)
+    mut prefix = expr as PrefixExpression
+    
+    compile_expression(compiler, prefix.right)
+    
+    if prefix.operator == "!"
+        emit_op(compiler, OpCode_Not)
+    elif prefix.operator == "-"
+        emit_op(compiler, OpCode_Negate)
+    elif prefix.operator == "~"
+        emit_op(compiler, OpCode_BitwiseNot)
+    end
+end
+
+fn compile_infix_expression(compiler: Compiler, expr: ASTNode)
+    mut infix = expr as InfixExpression
+    
+    compile_expression(compiler, infix.left)
+    compile_expression(compiler, infix.right)
+    
+    if infix.operator == "+"
+        emit_op(compiler, OpCode_Add)
+    elif infix.operator == "-"
+        emit_op(compiler, OpCode_Subtract)
+    elif infix.operator == "*"
+        emit_op(compiler, OpCode_Multiply)
+    elif infix.operator == "/"
+        emit_op(compiler, OpCode_Divide)
+    elif infix.operator == "%"
+        emit_op(compiler, OpCode_Modulo)
+    elif infix.operator == "**"
+        emit_op(compiler, OpCode_Power)
+    elif infix.operator == "=="
+        emit_op(compiler, OpCode_Equal)
+    elif infix.operator == "!="
+        emit_op(compiler, OpCode_NotEqual)
+    elif infix.operator == "<"
+        emit_op(compiler, OpCode_LessThan)
+    elif infix.operator == "<="
+        emit_op(compiler, OpCode_LessThanOrEqual)
+    elif infix.operator == ">"
+        emit_op(compiler, OpCode_GreaterThan)
+    elif infix.operator == ">="
+        emit_op(compiler, OpCode_GreaterThanOrEqual)
+    elif infix.operator == "and"
+        emit_op(compiler, OpCode_And)
+    elif infix.operator == "or"
+        emit_op(compiler, OpCode_Or)
+    elif infix.operator == "&"
+        emit_op(compiler, OpCode_BitwiseAnd)
+    elif infix.operator == "|"
+        emit_op(compiler, OpCode_BitwiseOr)
+    elif infix.operator == "^"
+        emit_op(compiler, OpCode_BitwiseXor)
+    elif infix.operator == "<<"
+        emit_op(compiler, OpCode_LeftShift)
+    elif infix.operator == ">>"
+        emit_op(compiler, OpCode_RightShift)
+    end
+end
+
+fn compile_call_expression(compiler: Compiler, expr: ASTNode)
+    mut call = expr as CallExpression
+    
+    compile_expression(compiler, call.function)
+    
+    for arg in call.arguments
+        compile_expression(compiler, arg)
+    end
+    
+    emit_op(compiler, OpCode_Call)
+    emit_int(compiler, len(call.arguments))
+end
+
+fn compile_index_expression(compiler: Compiler, expr: ASTNode)
+    mut index = expr as IndexExpression
+    
+    compile_expression(compiler, index.left)
+    compile_expression(compiler, index.index)
+    
+    emit_op(compiler, OpCode_Index)
+end
+
+// Bytecode emission
+fn emit_op(compiler: Compiler, op: int)
+    compiler.bytecode.instructions.push(op)
+end
+
+fn emit_int(compiler: Compiler, value: int)
+    compiler.bytecode.instructions.push(value)
+end
+
+fn add_constant(compiler: Compiler, value: Value) -> int
+    compiler.bytecode.constants.push(value)
+    return len(compiler.bytecode.constants) - 1
+end
+
+fn add_symbol(compiler: Compiler, name: string) -> int
+    // Add symbol to the bytecode's symbol table
+    mut index = len(compiler.bytecode.symbol_table)
+    compiler.bytecode.symbol_table[name] = index
+    return index
+end
+
+fn lookup_symbol(compiler: Compiler, name: string) -> int
+    // Lookup symbol by name in bytecode's symbol table
+    if name in compiler.bytecode.symbol_table
+        return compiler.bytecode.symbol_table[name]
+    end
+    return 0  // Return 0 for undefined variables
+end
+
+fn push_scope(compiler: Compiler)
+    // Create new scope by pushing a new scope onto the scopes array
+end
+
+fn pop_scope(compiler: Compiler)
+    // Pop scope from the scopes array
+end

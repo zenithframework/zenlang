@@ -1,0 +1,723 @@
+// Zenith Compiler - Parser Implementation
+// File: parser.zen
+// Purpose: Build AST from token stream using Pratt parsing
+// Performance: Single-pass parsing, O(n) complexity
+
+import "token.zen"
+import "ast.zen"
+
+// Operator precedence levels
+component Precedence {
+    const LOWEST = 0
+    const ASSIGNMENT = 1
+    const TERNARY = 2
+    const OR = 3
+    const AND = 4
+    const EQUALITY = 5
+    const COMPARISON = 6
+    const BITWISE_OR = 7
+    const BITWISE_XOR = 8
+    const BITWISE_AND = 9
+    const SHIFT = 10
+    const ADDITIVE = 11
+    const MULTIPLICATIVE = 12
+    const EXPONENT = 13
+    const UNARY = 14
+    const POSTFIX = 15
+    const CALL = 16
+    const MEMBER = 17
+}
+
+// Operator information
+component OpInfo {
+    precedence: int
+    is_right_associative: bool
+}
+
+// Scope for tracking variables and functions
+component Scope {
+    parent: Scope                   // Enclosing scope
+    locals: map[string, int]        // Variable name -> local index
+    functions: map[string, int]     // Function name -> index
+    local_count: int               // Number of locals in this scope
+}
+
+// Main parser component
+component Parser {
+    lexer: Lexer                    // Token source
+    current_token: Token            // Current token
+    peek_token: Token               // Next token
+    
+    scopes: array[Scope]            // Scope stack
+    current_scope_idx: int          // Index of current scope
+    
+    errors: array[string]           // Parse errors
+    
+    fn new(lexer: Lexer) -> Parser {
+        parser = Parser {
+            lexer: lexer,
+            current_token: Token.new(0, 0, 0, ""),
+            peek_token: Token.new(0, 0, 0, ""),
+            scopes: [Scope.new(null, 0)],
+            current_scope_idx: 0,
+            errors: []
+        }
+        
+        parser._advance()
+        parser._advance()
+        
+        return parser
+    }
+    
+    // Create new scope
+    fn _push_scope() -> void {
+        new_scope = Scope.new(current_scope(), current_scope().local_count)
+        scopes.append(new_scope)
+        current_scope_idx = current_scope_idx + 1
+    }
+    
+    // Exit scope
+    fn _pop_scope() -> void {
+        if current_scope_idx > 0 {
+            current_scope_idx = current_scope_idx - 1
+        }
+    }
+    
+    // Get current scope
+    fn current_scope() -> Scope {
+        return scopes[current_scope_idx]
+    }
+    
+    // Move to next token
+    fn _advance() -> void {
+        current_token = peek_token
+        peek_token = lexer.next_token()
+    }
+    
+    // Check if current token is of given type
+    fn _check(token_type: int) -> bool {
+        return current_token.type == token_type
+    }
+    
+    // Check if peek token is of given type
+    fn _peek_check(token_type: int) -> bool {
+        return peek_token.type == token_type
+    }
+    
+    // Consume current token if it matches expected type
+    fn _expect(token_type: int) -> bool {
+        if _peek_check(token_type) {
+            _advance()
+            return true
+        }
+        error = "Expected {token_type_name(token_type)} but got {token_type_name(peek_token.type)}"
+        errors.append(error)
+        return false
+    }
+    
+    // Get precedence for operator
+    fn _get_precedence(token_type: int) -> int {
+        match token_type {
+            TokenType.ASSIGN -> return Precedence.ASSIGNMENT
+            TokenType.PLUS_ASSIGN -> return Precedence.ASSIGNMENT
+            TokenType.MINUS_ASSIGN -> return Precedence.ASSIGNMENT
+            TokenType.STAR_ASSIGN -> return Precedence.ASSIGNMENT
+            TokenType.SLASH_ASSIGN -> return Precedence.ASSIGNMENT
+            TokenType.QUESTION -> return Precedence.TERNARY
+            TokenType.OR -> return Precedence.OR
+            TokenType.AND -> return Precedence.AND
+            TokenType.EQ -> return Precedence.EQUALITY
+            TokenType.NOT_EQ -> return Precedence.EQUALITY
+            TokenType.LT -> return Precedence.COMPARISON
+            TokenType.LTE -> return Precedence.COMPARISON
+            TokenType.GT -> return Precedence.COMPARISON
+            TokenType.GTE -> return Precedence.COMPARISON
+            TokenType.SPACESHIP -> return Precedence.COMPARISON
+            TokenType.PIPE -> return Precedence.BITWISE_OR
+            TokenType.BIT_XOR -> return Precedence.BITWISE_XOR
+            TokenType.BIT_AND -> return Precedence.BITWISE_AND
+            TokenType.LSHIFT -> return Precedence.SHIFT
+            TokenType.RSHIFT -> return Precedence.SHIFT
+            TokenType.PLUS -> return Precedence.ADDITIVE
+            TokenType.MINUS -> return Precedence.ADDITIVE
+            TokenType.STAR -> return Precedence.MULTIPLICATIVE
+            TokenType.SLASH -> return Precedence.MULTIPLICATIVE
+            TokenType.PERCENT -> return Precedence.MULTIPLICATIVE
+            TokenType.POWER -> return Precedence.EXPONENT
+            TokenType.LPAREN -> return Precedence.CALL
+            TokenType.LBRACKET -> return Precedence.MEMBER
+            TokenType.DOT -> return Precedence.MEMBER
+            TokenType.OPTIONAL -> return Precedence.MEMBER
+            default -> return Precedence.LOWEST
+        }
+    }
+    
+    // Parse a program (list of statements)
+    fn parse() -> Program {
+        statements = []
+        
+        while !_check(TokenType.EOF) {
+            stmt = _parse_statement()
+            if stmt != null {
+                statements.append(stmt)
+            }
+            _advance()
+        }
+        
+        return ast.create_program(statements)
+    }
+    
+    // Parse a statement
+    fn _parse_statement() -> ASTNode {
+        line = current_token.line
+        column = current_token.column
+        
+        match current_token.type {
+            TokenType.LET -> return _parse_let_statement()
+            TokenType.CONST -> return _parse_const_statement()
+            TokenType.RETURN -> return _parse_return_statement()
+            TokenType.LBRACE -> return _parse_block_statement()
+            TokenType.IF -> return _parse_if_statement()
+            TokenType.FOR -> return _parse_for_statement()
+            TokenType.WHILE -> return _parse_while_statement()
+            TokenType.BREAK -> {
+                _advance()
+                return BreakStatement {
+                    node_type: NodeType.BREAK_STMT,
+                    line: line,
+                    column: column,
+                    label: ""
+                }
+            }
+            TokenType.CONTINUE -> {
+                _advance()
+                return ContinueStatement {
+                    node_type: NodeType.CONTINUE_STMT,
+                    line: line,
+                    column: column,
+                    label: ""
+                }
+            }
+            TokenType.FN -> return _parse_function_statement()
+            TokenType.CLASS -> return _parse_class_statement()
+            TokenType.PAGE -> return _parse_page_statement()
+            TokenType.COMPONENT -> return _parse_component_statement()
+            default -> return _parse_expression_statement()
+        }
+    }
+    
+    // Parse let statement: let name: type = value
+    fn _parse_let_statement() -> LetStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'let'
+        
+        if !_check(TokenType.IDENTIFIER) {
+            error = "Expected identifier after 'let'"
+            errors.append(error)
+            return null
+        }
+        
+        name = current_token.value
+        _advance()
+        
+        type_hint = ""
+        if _check(TokenType.COLON) {
+            _advance()
+            if _check(TokenType.IDENTIFIER) {
+                type_hint = current_token.value
+                _advance()
+            }
+        }
+        
+        value = null
+        if _check(TokenType.ASSIGN) {
+            _advance()
+            value = _parse_expression(Precedence.LOWEST)
+        }
+        
+        return LetStatement {
+            node_type: NodeType.LET_STMT,
+            line: line,
+            column: column,
+            name: name,
+            type_hint: type_hint,
+            value: value
+        }
+    }
+    
+    // Parse const statement
+    fn _parse_const_statement() -> ConstStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'const'
+        
+        if !_check(TokenType.IDENTIFIER) {
+            error = "Expected identifier after 'const'"
+            errors.append(error)
+            return null
+        }
+        
+        name = current_token.value
+        _advance()
+        
+        type_hint = ""
+        if _check(TokenType.COLON) {
+            _advance()
+            if _check(TokenType.IDENTIFIER) {
+                type_hint = current_token.value
+                _advance()
+            }
+        }
+        
+        value = null
+        if _check(TokenType.ASSIGN) {
+            _advance()
+            value = _parse_expression(Precedence.LOWEST)
+        }
+        
+        return ConstStatement {
+            node_type: NodeType.CONST_STMT,
+            line: line,
+            column: column,
+            name: name,
+            type_hint: type_hint,
+            value: value
+        }
+    }
+    
+    // Parse return statement
+    fn _parse_return_statement() -> ReturnStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'return'
+        
+        value = null
+        if !_check(TokenType.SEMICOLON) && !_check(TokenType.EOF) && !_check(TokenType.RBRACE) {
+            value = _parse_expression(Precedence.LOWEST)
+        }
+        
+        return ReturnStatement {
+            node_type: NodeType.RETURN_STMT,
+            line: line,
+            column: column,
+            value: value
+        }
+    }
+    
+    // Parse block statement: { statements }
+    fn _parse_block_statement() -> BlockStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip '{'
+        
+        statements = []
+        while !_check(TokenType.RBRACE) && !_check(TokenType.EOF) {
+            stmt = _parse_statement()
+            if stmt != null {
+                statements.append(stmt)
+            }
+            _advance()
+        }
+        
+        if !_check(TokenType.RBRACE) {
+            error = "Expected '}' to close block"
+            errors.append(error)
+        }
+        
+        return BlockStatement {
+            node_type: NodeType.BLOCK_STMT,
+            line: line,
+            column: column,
+            statements: statements
+        }
+    }
+    
+    // Parse if statement: if condition { block } else { block }
+    fn _parse_if_statement() -> IfStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'if'
+        
+        condition = _parse_expression(Precedence.LOWEST)
+        
+        if !_check(TokenType.LBRACE) {
+            error = "Expected '{' after if condition"
+            errors.append(error)
+            return null
+        }
+        
+        then_block = _parse_block_statement()
+        
+        else_block = null
+        if _peek_check(TokenType.ELSE) {
+            _advance()
+            _advance()  // Skip 'else'
+            
+            if _check(TokenType.LBRACE) {
+                else_block = _parse_block_statement()
+            } else if _check(TokenType.IF) {
+                // else if
+                else_stmt = _parse_if_statement()
+                else_block = BlockStatement {
+                    node_type: NodeType.BLOCK_STMT,
+                    line: else_stmt.line,
+                    column: else_stmt.column,
+                    statements: [else_stmt]
+                }
+            }
+        }
+        
+        return IfStatement {
+            node_type: NodeType.IF_STMT,
+            line: line,
+            column: column,
+            condition: condition,
+            then_block: then_block,
+            else_block: else_block
+        }
+    }
+    
+    // Parse for statement: for init; condition; update { body }
+    fn _parse_for_statement() -> ForStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'for'
+        
+        init = null
+        if !_check(TokenType.SEMICOLON) {
+            init = _parse_expression(Precedence.LOWEST)
+        }
+        _advance()
+        
+        condition = null
+        if !_check(TokenType.SEMICOLON) {
+            condition = _parse_expression(Precedence.LOWEST)
+        }
+        _advance()
+        
+        update = null
+        if !_check(TokenType.LBRACE) {
+            update = _parse_expression(Precedence.LOWEST)
+        }
+        
+        if !_check(TokenType.LBRACE) {
+            error = "Expected '{' in for loop body"
+            errors.append(error)
+            return null
+        }
+        
+        body = _parse_block_statement()
+        
+        return ForStatement {
+            node_type: NodeType.FOR_STMT,
+            line: line,
+            column: column,
+            init: init,
+            condition: condition,
+            update: update,
+            body: body
+        }
+    }
+    
+    // Parse while statement: while condition { body }
+    fn _parse_while_statement() -> WhileStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'while'
+        
+        condition = _parse_expression(Precedence.LOWEST)
+        
+        if !_check(TokenType.LBRACE) {
+            error = "Expected '{' after while condition"
+            errors.append(error)
+            return null
+        }
+        
+        body = _parse_block_statement()
+        
+        return WhileStatement {
+            node_type: NodeType.WHILE_STMT,
+            line: line,
+            column: column,
+            condition: condition,
+            body: body
+        }
+    }
+    
+    // Parse function statement: fn name(params) { body }
+    fn _parse_function_statement() -> FunctionStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        _advance()  // Skip 'fn'
+        
+        if !_check(TokenType.IDENTIFIER) {
+            error = "Expected function name"
+            errors.append(error)
+            return null
+        }
+        
+        name = current_token.value
+        _advance()
+        
+        if !_check(TokenType.LPAREN) {
+            error = "Expected '(' in function definition"
+            errors.append(error)
+            return null
+        }
+        
+        parameters = _parse_parameters()
+        
+        return_type = ""
+        if _check(TokenType.ARROW) {
+            _advance()
+            if _check(TokenType.IDENTIFIER) {
+                return_type = current_token.value
+                _advance()
+            }
+        }
+        
+        if !_check(TokenType.LBRACE) {
+            error = "Expected '{' in function body"
+            errors.append(error)
+            return null
+        }
+        
+        body = _parse_block_statement()
+        
+        return FunctionStatement {
+            node_type: NodeType.FUNCTION_STMT,
+            line: line,
+            column: column,
+            name: name,
+            parameters: parameters,
+            return_type: return_type,
+            body: body,
+            is_async: false
+        }
+    }
+    
+    // Parse parameter list: (param1: type, param2: type, ...)
+    fn _parse_parameters() -> array[Parameter] {
+        parameters = []
+        
+        _advance()  // Skip '('
+        
+        while !_check(TokenType.RPAREN) && !_check(TokenType.EOF) {
+            if _check(TokenType.IDENTIFIER) {
+                name = current_token.value
+                _advance()
+                
+                type_hint = ""
+                if _check(TokenType.COLON) {
+                    _advance()
+                    if _check(TokenType.IDENTIFIER) {
+                        type_hint = current_token.value
+                        _advance()
+                    }
+                }
+                
+                param = Parameter {
+                    name: name,
+                    type_hint: type_hint,
+                    default_value: null
+                }
+                parameters.append(param)
+                
+                if _check(TokenType.COMMA) {
+                    _advance()
+                }
+            } else {
+                error = "Expected parameter name"
+                errors.append(error)
+                _advance()
+            }
+        }
+        
+        if !_check(TokenType.RPAREN) {
+            error = "Expected ')' to close parameter list"
+            errors.append(error)
+        } else {
+            _advance()
+        }
+        
+        return parameters
+    }
+    
+    // Parse class statement
+    fn _parse_class_statement() -> ClassStatement {
+        // TODO: Implement class parsing
+        return null
+    }
+    
+    // Parse page statement
+    fn _parse_page_statement() -> PageStatement {
+        // TODO: Implement page parsing
+        return null
+    }
+    
+    // Parse component statement
+    fn _parse_component_statement() -> ComponentStatement {
+        // TODO: Implement component parsing
+        return null
+    }
+    
+    // Parse expression statement
+    fn _parse_expression_statement() -> ExpressionStatement {
+        line = current_token.line
+        column = current_token.column
+        
+        expr = _parse_expression(Precedence.LOWEST)
+        
+        return ExpressionStatement {
+            node_type: NodeType.EXPR_STMT,
+            line: line,
+            column: column,
+            expression: expr
+        }
+    }
+    
+    // Parse expression with precedence climbing
+    fn _parse_expression(precedence: int) -> ASTNode {
+        left = _parse_primary()
+        
+        while !_check(TokenType.EOF) && 
+              !_check(TokenType.SEMICOLON) && 
+              !_check(TokenType.RBRACE) && 
+              !_check(TokenType.RPAREN) &&
+              !_check(TokenType.RBRACKET) &&
+              !_check(TokenType.COMMA) {
+            
+            next_prec = _get_precedence(current_token.type)
+            if next_prec < precedence {
+                break
+            }
+            
+            op = current_token.value
+            _advance()
+            
+            right = _parse_expression(next_prec + 1)
+            left = ast.create_infix_expression(op, left, right, left.line, left.column)
+        }
+        
+        return left
+    }
+    
+    // Parse primary expression
+    fn _parse_primary() -> ASTNode {
+        line = current_token.line
+        column = current_token.column
+        
+        match current_token.type {
+            TokenType.IDENTIFIER -> {
+                return ast.create_identifier(current_token.value, line, column)
+            }
+            TokenType.INT -> {
+                value = 0  // TODO: Parse integer value
+                return ast.create_integer_literal(value, line, column)
+            }
+            TokenType.FLOAT -> {
+                // TODO: Parse float value
+                return ast.create_string_literal(current_token.value, line, column)
+            }
+            TokenType.STRING -> {
+                return ast.create_string_literal(current_token.value, line, column)
+            }
+            TokenType.TRUE -> {
+                return ast.create_boolean_literal(true, line, column)
+            }
+            TokenType.FALSE -> {
+                return ast.create_boolean_literal(false, line, column)
+            }
+            TokenType.NULL -> {
+                return NullLiteral {
+                    node_type: NodeType.NULL_LITERAL,
+                    line: line,
+                    column: column
+                }
+            }
+            TokenType.LPAREN -> {
+                _advance()
+                expr = _parse_expression(Precedence.LOWEST)
+                if !_check(TokenType.RPAREN) {
+                    error = "Expected ')' to close grouped expression"
+                    errors.append(error)
+                }
+                return expr
+            }
+            TokenType.LBRACKET -> {
+                _advance()
+                elements = []
+                while !_check(TokenType.RBRACKET) && !_check(TokenType.EOF) {
+                    elements.append(_parse_expression(Precedence.LOWEST))
+                    if _check(TokenType.COMMA) {
+                        _advance()
+                    }
+                }
+                if !_check(TokenType.RBRACKET) {
+                    error = "Expected ']' to close array literal"
+                    errors.append(error)
+                }
+                return ArrayLiteral {
+                    node_type: NodeType.ARRAY_LITERAL,
+                    line: line,
+                    column: column,
+                    elements: elements
+                }
+            }
+            TokenType.BANG -> {
+                _advance()
+                operand = _parse_expression(Precedence.UNARY)
+                return ast.create_prefix_expression("!", operand, line, column)
+            }
+            TokenType.MINUS -> {
+                _advance()
+                operand = _parse_expression(Precedence.UNARY)
+                return ast.create_prefix_expression("-", operand, line, column)
+            }
+            TokenType.NOT -> {
+                _advance()
+                operand = _parse_expression(Precedence.UNARY)
+                return ast.create_prefix_expression("not", operand, line, column)
+            }
+            default -> {
+                error = "Unexpected token: {current_token.value}"
+                errors.append(error)
+                return null
+            }
+        }
+    }
+}
+
+// Scope component
+component Scope {
+    parent: Scope
+    local_count: int
+    
+    fn new(parent: Scope, local_count: int) -> Scope {
+        return Scope {
+            parent: parent,
+            local_count: local_count
+        }
+    }
+}
+
+// Helper function: get token type name
+fn token_type_name(token_type: int) -> string {
+    match token_type {
+        TokenType.IDENTIFIER -> return "IDENTIFIER"
+        TokenType.INT -> return "INT"
+        TokenType.FLOAT -> return "FLOAT"
+        TokenType.STRING -> return "STRING"
+        TokenType.EOF -> return "EOF"
+        default -> return "UNKNOWN"
+    }
+}

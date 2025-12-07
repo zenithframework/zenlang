@@ -1,0 +1,46 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Zenith",
+    "scopeName": "source.zen",
+    "patterns": [
+        { "include": "#comments" },
+        { "include": "#keywords" },
+        { "include": "#strings" }
+    ],
+    "repository": {
+        "keywords": {
+            "patterns": [{
+                "name": "keyword.control.zen",
+                "match": "\\b(if|else|for|return|new)\\b"
+            }, {
+                "name": "storage.type.zen",
+                "match": "\\b(let|const|fn|class|page|component)\\b"
+            }, {
+                "name": "storage.modifier.zen",
+                "match": "\\b(string|int|float|bool|array|map)\\b"
+            }]
+        },
+        "strings": {
+            "name": "string.quoted.double.zen",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [{
+                "name": "constant.character.escape.zen",
+                "match": "\\\\."
+            }]
+        },
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.zen",
+                    "match": "//.*"
+                },
+                {
+                    "name": "comment.block.zen",
+                    "begin": "/\*",
+                    "end": "\*/"
+                }
+            ]
+        }
+    }
+}

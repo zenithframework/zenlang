@@ -1,0 +1,19 @@
+// Simple integration test: compile and run a minimal expression
+// This imports the compiler and VM modules to verify they work together
+
+import zenith::compiler::{Compiler, compile}
+import zenith::vm::{VM, execute}
+
+fn main()
+    // Create a minimal AST and compile it
+    // For now, this is a placeholder test harness
+    println("Integration test: Compiler + VM")
+    
+    // Create a compiler
+    let compiler = Compiler.new()
+    
+    // Create a VM
+    let vm = VM.new()
+    
+    println("Compiler and VM created successfully")
+end

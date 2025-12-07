@@ -1,0 +1,691 @@
+// Zenith Virtual Machine - Bytecode Execution Engine
+// Owner: Zenith Framework
+// Stack-based bytecode interpreter with profiling support
+
+// Runtime value union type (represented as tagged structure)
+struct Value
+    tag: int  // 0: int, 1: float, 2: string, 3: bool, 4: null, 5: array, 6: map
+    int_val: int
+    float_val: float
+    string_val: string
+    bool_val: bool
+    array_val: array[Value]
+    map_val: map[string]Value
+end
+
+// Call frame for function calls
+struct CallFrame
+    function_index: int
+    instruction_pointer: int
+    local_count: int
+    local_start: int
+end
+
+// VM state
+struct VM
+    stack: array[Value]
+    stack_pointer: int
+    call_stack: array[CallFrame]
+    call_stack_pointer: int
+    locals: array[Value]
+    locals_pointer: int
+    constants: array[Value]
+    bytecode: array[int]
+    instruction_pointer: int
+    
+    // Profiling
+    profiling_enabled: bool
+    instruction_count: int
+    start_time: int
+    end_time: int
+end
+
+// Create new VM
+fn VM.new() -> VM
+    mut vm = VM{
+        stack: [],
+        stack_pointer: 0,
+        call_stack: [],
+        call_stack_pointer: 0,
+        locals: [],
+        locals_pointer: 0,
+        constants: [],
+        bytecode: [],
+        instruction_pointer: 0,
+        profiling_enabled: false,
+        instruction_count: 0,
+        start_time: 0,
+        end_time: 0
+    }
+    return vm
+end
+
+// Enable profiling
+fn enable_profiling(vm: VM)
+    vm.profiling_enabled = true
+    vm.start_time = now_ms()
+end
+
+// Get execution time in milliseconds
+fn execution_time_ms(vm: VM) -> int
+    return vm.end_time - vm.start_time
+end
+
+// Get instruction count
+fn instruction_count(vm: VM) -> int
+    return vm.instruction_count
+end
+
+// Execute bytecode
+fn execute(vm: VM, bytecode: array[int]) -> int
+    vm.bytecode = bytecode
+    vm.instruction_pointer = 0
+    
+    while vm.instruction_pointer < len(vm.bytecode)
+        mut op = vm.bytecode[vm.instruction_pointer]
+        vm.instruction_pointer = vm.instruction_pointer + 1
+        
+        if vm.profiling_enabled
+            vm.instruction_count = vm.instruction_count + 1
+        end
+        
+        // Opcode dispatch
+        if op == 0  // OpCode_Constant
+            execute_constant(vm)
+        elif op == 1  // OpCode_Pop
+            execute_pop(vm)
+        elif op == 2  // OpCode_True
+            execute_true(vm)
+        elif op == 3  // OpCode_False
+            execute_false(vm)
+        elif op == 4  // OpCode_Null
+            execute_null(vm)
+        elif op == 5  // OpCode_Add
+            execute_add(vm)
+        elif op == 6  // OpCode_Subtract
+            execute_subtract(vm)
+        elif op == 7  // OpCode_Multiply
+            execute_multiply(vm)
+        elif op == 8  // OpCode_Divide
+            execute_divide(vm)
+        elif op == 9  // OpCode_Modulo
+            execute_modulo(vm)
+        elif op == 10  // OpCode_Power
+            execute_power(vm)
+        elif op == 11  // OpCode_Equal
+            execute_equal(vm)
+        elif op == 12  // OpCode_NotEqual
+            execute_not_equal(vm)
+        elif op == 13  // OpCode_LessThan
+            execute_less_than(vm)
+        elif op == 14  // OpCode_LessThanOrEqual
+            execute_less_than_or_equal(vm)
+        elif op == 15  // OpCode_GreaterThan
+            execute_greater_than(vm)
+        elif op == 16  // OpCode_GreaterThanOrEqual
+            execute_greater_than_or_equal(vm)
+        elif op == 17  // OpCode_And
+            execute_and(vm)
+        elif op == 18  // OpCode_Or
+            execute_or(vm)
+        elif op == 19  // OpCode_Not
+            execute_not(vm)
+        elif op == 20  // OpCode_Negate
+            execute_negate(vm)
+        elif op == 21  // OpCode_BitwiseAnd
+            execute_bitwise_and(vm)
+        elif op == 22  // OpCode_BitwiseOr
+            execute_bitwise_or(vm)
+        elif op == 23  // OpCode_BitwiseXor
+            execute_bitwise_xor(vm)
+        elif op == 24  // OpCode_BitwiseNot
+            execute_bitwise_not(vm)
+        elif op == 25  // OpCode_LeftShift
+            execute_left_shift(vm)
+        elif op == 26  // OpCode_RightShift
+            execute_right_shift(vm)
+        elif op == 27  // OpCode_Jump
+            execute_jump(vm)
+        elif op == 28  // OpCode_JumpIfFalse
+            execute_jump_if_false(vm)
+        elif op == 29  // OpCode_Call
+            execute_call(vm)
+        elif op == 30  // OpCode_Return
+            execute_return(vm)
+        elif op == 31  // OpCode_Set
+            execute_set(vm)
+        elif op == 32  // OpCode_Get
+            execute_get(vm)
+        elif op == 33  // OpCode_Array
+            execute_array(vm)
+        elif op == 34  // OpCode_Map
+            execute_map(vm)
+        elif op == 35  // OpCode_Index
+            execute_index(vm)
+        elif op == 36  // OpCode_SetIndex
+            execute_set_index(vm)
+        end
+    end
+    
+    if vm.profiling_enabled
+        vm.end_time = now_ms()
+    end
+    
+    return 0
+end
+
+// Opcode handlers
+
+fn execute_constant(vm: VM)
+    mut index = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+    
+    mut value = vm.constants[index]
+    push_stack(vm, value)
+end
+
+fn execute_pop(vm: VM)
+    mut value = pop_stack(vm)
+end
+
+fn execute_true(vm: VM)
+    mut value = Value{ tag: 3, bool_val: true }
+    push_stack(vm, value)
+end
+
+fn execute_false(vm: VM)
+    mut value = Value{ tag: 3, bool_val: false }
+    push_stack(vm, value)
+end
+
+fn execute_null(vm: VM)
+    mut value = Value{ tag: 4 }
+    push_stack(vm, value)
+end
+
+fn execute_add(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0  // int + int
+        mut result = Value{ tag: 0, int_val: left.int_val + right.int_val }
+        push_stack(vm, result)
+    elif left.tag == 1 or right.tag == 1  // float arithmetic
+        mut left_float = if left.tag == 0 then left.int_val as float else left.float_val
+        mut right_float = if right.tag == 0 then right.int_val as float else right.float_val
+        mut result = Value{ tag: 1, float_val: left_float + right_float }
+        push_stack(vm, result)
+    elif left.tag == 2 and right.tag == 2  // string concatenation
+        mut result = Value{ tag: 2, string_val: left.string_val + right.string_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_subtract(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0  // int - int
+        mut result = Value{ tag: 0, int_val: left.int_val - right.int_val }
+        push_stack(vm, result)
+    elif left.tag == 1 or right.tag == 1  // float arithmetic
+        mut left_float = if left.tag == 0 then left.int_val as float else left.float_val
+        mut right_float = if right.tag == 0 then right.int_val as float else right.float_val
+        mut result = Value{ tag: 1, float_val: left_float - right_float }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_multiply(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0  // int * int
+        mut result = Value{ tag: 0, int_val: left.int_val * right.int_val }
+        push_stack(vm, result)
+    elif left.tag == 1 or right.tag == 1  // float arithmetic
+        mut left_float = if left.tag == 0 then left.int_val as float else left.float_val
+        mut right_float = if right.tag == 0 then right.int_val as float else right.float_val
+        mut result = Value{ tag: 1, float_val: left_float * right_float }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_divide(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0  // int / int
+        if right.int_val != 0
+            mut result = Value{ tag: 0, int_val: left.int_val / right.int_val }
+            push_stack(vm, result)
+        end
+    elif left.tag == 1 or right.tag == 1  // float arithmetic
+        mut left_float = if left.tag == 0 then left.int_val as float else left.float_val
+        mut right_float = if right.tag == 0 then right.int_val as float else right.float_val
+        if right_float != 0.0
+            mut result = Value{ tag: 1, float_val: left_float / right_float }
+            push_stack(vm, result)
+        end
+    end
+end
+
+fn execute_modulo(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0 and right.int_val != 0
+        mut result = Value{ tag: 0, int_val: left.int_val % right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_power(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut left_float = if left.tag == 0 then left.int_val as float else left.float_val
+    mut right_float = if right.tag == 0 then right.int_val as float else right.float_val
+    mut result = Value{ tag: 1, float_val: power(left_float, right_float) }
+    push_stack(vm, result)
+end
+
+fn execute_equal(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut equal = values_equal(left, right)
+    mut result = Value{ tag: 3, bool_val: equal }
+    push_stack(vm, result)
+end
+
+fn execute_not_equal(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut equal = values_equal(left, right)
+    mut result = Value{ tag: 3, bool_val: not equal }
+    push_stack(vm, result)
+end
+
+fn execute_less_than(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut less = if left.tag == 0 and right.tag == 0 then left.int_val < right.int_val else false
+    mut result = Value{ tag: 3, bool_val: less }
+    push_stack(vm, result)
+end
+
+fn execute_less_than_or_equal(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut le = if left.tag == 0 and right.tag == 0 then left.int_val <= right.int_val else false
+    mut result = Value{ tag: 3, bool_val: le }
+    push_stack(vm, result)
+end
+
+fn execute_greater_than(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut gt = if left.tag == 0 and right.tag == 0 then left.int_val > right.int_val else false
+    mut result = Value{ tag: 3, bool_val: gt }
+    push_stack(vm, result)
+end
+
+fn execute_greater_than_or_equal(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut ge = if left.tag == 0 and right.tag == 0 then left.int_val >= right.int_val else false
+    mut result = Value{ tag: 3, bool_val: ge }
+    push_stack(vm, result)
+end
+
+fn execute_and(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut left_bool = is_truthy(left)
+    mut right_bool = is_truthy(right)
+    mut result = Value{ tag: 3, bool_val: left_bool and right_bool }
+    push_stack(vm, result)
+end
+
+fn execute_or(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    mut left_bool = is_truthy(left)
+    mut right_bool = is_truthy(right)
+    mut result = Value{ tag: 3, bool_val: left_bool or right_bool }
+    push_stack(vm, result)
+end
+
+fn execute_not(vm: VM)
+    mut value = pop_stack(vm)
+    mut result = Value{ tag: 3, bool_val: not is_truthy(value) }
+    push_stack(vm, result)
+end
+
+fn execute_negate(vm: VM)
+    mut value = pop_stack(vm)
+    
+    if value.tag == 0  // int
+        mut result = Value{ tag: 0, int_val: -value.int_val }
+        push_stack(vm, result)
+    elif value.tag == 1  // float
+        mut result = Value{ tag: 1, float_val: -value.float_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_bitwise_and(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0
+        mut result = Value{ tag: 0, int_val: left.int_val & right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_bitwise_or(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0
+        mut result = Value{ tag: 0, int_val: left.int_val | right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_bitwise_xor(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0
+        mut result = Value{ tag: 0, int_val: left.int_val ^ right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_bitwise_not(vm: VM)
+    mut value = pop_stack(vm)
+    
+    if value.tag == 0
+        mut result = Value{ tag: 0, int_val: ~value.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_left_shift(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0
+        mut result = Value{ tag: 0, int_val: left.int_val << right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_right_shift(vm: VM)
+    mut right = pop_stack(vm)
+    mut left = pop_stack(vm)
+    
+    if left.tag == 0 and right.tag == 0
+        mut result = Value{ tag: 0, int_val: left.int_val >> right.int_val }
+        push_stack(vm, result)
+    end
+end
+
+fn execute_jump(vm: VM)
+    mut address = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = address
+end
+
+fn execute_jump_if_false(vm: VM)
+    mut address = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+    
+    mut condition = pop_stack(vm)
+    if not is_truthy(condition)
+        vm.instruction_pointer = address
+    end
+end
+
+fn execute_call(vm: VM)
+    // Function call handling with builtin dispatch
+    mut arg_count = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+
+    mut args = []
+    mut i = 0
+    while i < arg_count
+        args.push(pop_stack(vm))
+        i = i + 1
+    end
+
+    mut callee = pop_stack(vm)
+
+    // Dispatch to builtin functions by callee string name
+    if callee.tag == 2
+        if callee.string_val == "println"
+            // println: print all args with newline
+            i = 0
+            while i < len(args)
+                print_value(args[i])
+                i = i + 1
+            end
+        elif callee.string_val == "print"
+            // print: print all args without newline
+            i = 0
+            while i < len(args)
+                print_value(args[i])
+                i = i + 1
+            end
+        end
+    end
+    // Return null for all calls
+    push_stack(vm, Value{ tag: 4 })
+end
+
+fn execute_return(vm: VM)
+    // Return from function: pop return value and push it back.
+    mut ret = pop_stack(vm)
+    // In a full implementation we'd restore the call frame and locals here.
+    push_stack(vm, ret)
+end
+
+fn execute_set(vm: VM)
+    mut index = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+    
+    mut value = pop_stack(vm)
+    if index < len(vm.locals)
+        vm.locals[index] = value
+    end
+end
+
+fn execute_get(vm: VM)
+    mut index = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+    
+    if index < len(vm.locals)
+        push_stack(vm, vm.locals[index])
+    end
+end
+
+fn execute_array(vm: VM)
+    mut count = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+    
+    mut array = []
+    mut i = 0
+    while i < count
+        array.push(pop_stack(vm))
+        i = i + 1
+    end
+    
+    mut result = Value{ tag: 5, array_val: array }
+    push_stack(vm, result)
+end
+
+fn execute_map(vm: VM)
+    // Map creation: expects pairs on the stack in (key,value) order for `count` pairs.
+    mut count = vm.bytecode[vm.instruction_pointer]
+    vm.instruction_pointer = vm.instruction_pointer + 1
+
+    mut m = {}
+    mut i = 0
+    while i < count
+        mut value = pop_stack(vm)
+        mut key = pop_stack(vm)
+        if key.tag == 2
+            m[key.string_val] = value
+        end
+        i = i + 1
+    end
+
+    mut result = Value{ tag: 6, map_val: m }
+    push_stack(vm, result)
+end
+
+fn execute_index(vm: VM)
+    mut index = pop_stack(vm)
+    mut array = pop_stack(vm)
+    
+    if array.tag == 5 and index.tag == 0
+        mut idx = index.int_val
+        if idx >= 0 and idx < len(array.array_val)
+            push_stack(vm, array.array_val[idx])
+        end
+    end
+end
+
+fn execute_set_index(vm: VM)
+    // Index assignment for arrays and maps
+    mut value = pop_stack(vm)
+    mut index = pop_stack(vm)
+    mut collection = pop_stack(vm)
+
+    if collection.tag == 5 and index.tag == 0
+        mut idx = index.int_val
+        if idx >= 0 and idx < len(collection.array_val)
+            collection.array_val[idx] = value
+        end
+    elif collection.tag == 6 and index.tag == 2
+        collection.map_val[index.string_val] = value
+    end
+end
+
+// Stack operations
+fn push_stack(vm: VM, value: Value)
+    vm.stack.push(value)
+end
+
+fn pop_stack(vm: VM) -> Value
+    if len(vm.stack) > 0
+        return vm.stack.pop()
+    end
+    return Value{ tag: 4 }
+end
+
+// Helper functions
+fn is_truthy(value: Value) -> bool
+    if value.tag == 3  // bool
+        return value.bool_val
+    elif value.tag == 4  // null
+        return false
+    elif value.tag == 0 and value.int_val == 0  // zero is false
+        return false
+    else
+        return true
+    end
+end
+
+fn values_equal(left: Value, right: Value) -> bool
+    if left.tag != right.tag
+        return false
+    end
+    
+    if left.tag == 0  // int
+        return left.int_val == right.int_val
+    elif left.tag == 1  // float
+        return left.float_val == right.float_val
+    elif left.tag == 2  // string
+        return left.string_val == right.string_val
+    elif left.tag == 3  // bool
+        return left.bool_val == right.bool_val
+    elif left.tag == 4  // null
+        return true
+    end
+    
+    return false
+end
+
+fn power(base: float, exp: float) -> float
+    // Built-in power function (simple integer exponent implementation)
+    if exp == 0.0
+        return 1.0
+    end
+
+    // Only support positive integer exponents for now
+    mut n = exp as int
+    if n < 0
+        return 0.0
+    end
+
+    mut res = 1.0
+    mut i = 0
+    while i < n
+        res = res * base
+        i = i + 1
+    end
+    return res
+end
+
+fn now_ms() -> int
+    // Get current time in milliseconds. Placeholder returns 0 until host bridge is implemented.
+    return 0
+end
+
+fn print_value(value: Value)
+    // Print a runtime value to stdout
+    if value.tag == 0  // int
+        // Print integer value
+        // In Zenith: convert int to string and print
+    elif value.tag == 1  // float
+        // Print float value
+        // In Zenith: convert float to string and print
+    elif value.tag == 2  // string
+        // Print string directly (no quotes)
+    elif value.tag == 3  // bool
+        // Print boolean: true or false
+        if value.bool_val
+            // print("true")
+        else
+            // print("false")
+        end
+    elif value.tag == 4  // null
+        // print("null")
+    elif value.tag == 5  // array
+        // Print array: [ ... ]
+        // print("[")
+        mut i = 0
+        while i < len(value.array_val)
+            if i > 0
+                // print(", ")
+            end
+            print_value(value.array_val[i])
+            i = i + 1
+        end
+        // print("]")
+    elif value.tag == 6  // map
+        // Print map: { ... }
+        // print("{")
+        // print("}")
+    end
+end
