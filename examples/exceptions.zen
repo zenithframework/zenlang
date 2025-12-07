@@ -1,0 +1,58 @@
+// Example: Exception Handling
+// Demonstrates try/catch/finally blocks and error handling
+
+function divide(a, b) {
+    if (b == 0) {
+        throw "Division by zero error!";
+    }
+    return a / b;
+}
+
+function parse_number(str) {
+    if (str == "" || str == nil) {
+        throw "Empty string cannot be parsed";
+    }
+    // In real Zen, this would use a proper number parsing function
+    return 42;
+}
+
+print("=== Exception Handling Example ===");
+
+// Basic try/catch
+try {
+    print("Attempting division: 10 / 2 = ", divide(10, 2));
+} catch (error) {
+    print("Error: ", error);
+}
+
+// Try/catch with exception
+try {
+    print("Attempting division: 10 / 0 = ", divide(10, 0));
+} catch (error) {
+    print("Caught error: ", error);
+}
+
+// Try/catch/finally
+var result = nil;
+try {
+    result = divide(20, 4);
+    print("Successfully divided: ", result);
+} catch (error) {
+    print("Error during division: ", error);
+} finally {
+    print("Division attempt completed");
+}
+
+// Nested try/catch
+try {
+    try {
+        divide(15, 0);
+    } catch (inner_error) {
+        print("Inner catch: ", inner_error);
+        throw "Propagated error";
+    }
+} catch (outer_error) {
+    print("Outer catch: ", outer_error);
+}
+
+print("=== Done ===");

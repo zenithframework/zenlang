@@ -1,0 +1,66 @@
+// Example: Recursion
+// Demonstrates recursive function calls (functions calling themselves)
+
+// Calculate factorial recursively
+function factorial(n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+// Calculate power recursively
+function power(base, exponent) {
+    if (exponent == 0) {
+        return 1;
+    }
+    return base * power(base, exponent - 1);
+}
+
+// Euclidean algorithm for GCD
+function gcd(a, b) {
+    if (b == 0) {
+        return a;
+    }
+    return gcd(b, a % b);
+}
+
+// Sum of natural numbers
+function sum_to(n) {
+    if (n <= 0) {
+        return 0;
+    }
+    return n + sum_to(n - 1);
+}
+
+// Sum of array elements
+function sum_array(arr, index) {
+    if (index >= length(arr)) {
+        return 0;
+    }
+    return arr[index] + sum_array(arr, index + 1);
+}
+
+print("=== Recursion Example ===");
+
+print("Factorial:");
+print("  factorial(5) = ", factorial(5));
+print("  factorial(10) = ", factorial(10));
+
+print("\nPower:");
+print("  power(2, 8) = ", power(2, 8));
+print("  power(3, 4) = ", power(3, 4));
+
+print("\nGCD (Greatest Common Divisor):");
+print("  gcd(48, 18) = ", gcd(48, 18));
+print("  gcd(100, 60) = ", gcd(100, 60));
+
+print("\nSum of natural numbers:");
+print("  sum_to(5) = ", sum_to(5));
+print("  sum_to(10) = ", sum_to(10));
+
+print("\nSum of array elements:");
+var numbers = [1, 2, 3, 4, 5];
+print("  sum_array([1,2,3,4,5], 0) = ", sum_array(numbers, 0));
+
+print("=== Done ===");

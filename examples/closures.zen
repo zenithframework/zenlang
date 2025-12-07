@@ -1,0 +1,44 @@
+// Example: Closures
+// Demonstrates functions that capture variables from their lexical scope
+
+// Function that returns a function (closure)
+function make_counter() {
+    var count = 0;
+    
+    function increment() {
+        count = count + 1;
+        return count;
+    }
+    
+    return increment;
+}
+
+// Create two independent counters
+var counter1 = make_counter();
+var counter2 = make_counter();
+
+print("=== Closures Example ===");
+print("Counter 1:");
+print("  increment() = ", counter1());
+print("  increment() = ", counter1());
+print("  increment() = ", counter1());
+
+print("Counter 2:");
+print("  increment() = ", counter2());
+print("  increment() = ", counter2());
+
+// Function that creates an adder with a fixed amount
+function make_adder(amount) {
+    function add(x) {
+        return x + amount;
+    }
+    return add;
+}
+
+var add_10 = make_adder(10);
+var add_100 = make_adder(100);
+
+print("add_10(5) = ", add_10(5));
+print("add_10(20) = ", add_10(20));
+print("add_100(5) = ", add_100(5));
+print("=== Done ===");

@@ -1,0 +1,101 @@
+// Example: Advanced Concepts
+// Demonstrates higher-order functions, functional programming patterns
+
+// Filter: Apply a predicate to array elements
+function filter(arr, predicate) {
+    var result = [];
+    for (var i = 0; i < length(arr); i = i + 1) {
+        if (predicate(arr[i])) {
+            result[length(result)] = arr[i];
+        }
+    }
+    return result;
+}
+
+// Map: Apply a function to each array element
+function map(arr, func) {
+    var result = [];
+    for (var i = 0; i < length(arr); i = i + 1) {
+        result[length(result)] = func(arr[i]);
+    }
+    return result;
+}
+
+// Reduce: Combine array elements into a single value
+function reduce(arr, func, initial) {
+    var accumulator = initial;
+    for (var i = 0; i < length(arr); i = i + 1) {
+        accumulator = func(accumulator, arr[i]);
+    }
+    return accumulator;
+}
+
+// Compose: Create a new function from multiple functions
+function compose(f, g) {
+    function composed(x) {
+        return f(g(x));
+    }
+    return composed;
+}
+
+print("=== Advanced Concepts Example ===");
+
+var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+print("Original array: ", numbers);
+
+// Filter even numbers
+var is_even = function(x) {
+    return x % 2 == 0;
+};
+var evens = filter(numbers, is_even);
+print("Even numbers: ", evens);
+
+// Filter odd numbers
+var is_odd = function(x) {
+    return x % 2 != 0;
+};
+var odds = filter(numbers, is_odd);
+print("Odd numbers: ", odds);
+
+// Map: double each number
+var double = function(x) {
+    return x * 2;
+};
+var doubled = map(numbers, double);
+print("Doubled: ", doubled);
+
+// Map: square each number
+var square = function(x) {
+    return x * x;
+};
+var squared = map(numbers, square);
+print("Squared: ", squared);
+
+// Reduce: sum
+var sum_func = function(acc, val) {
+    return acc + val;
+};
+var total = reduce(numbers, sum_func, 0);
+print("Sum: ", total);
+
+// Reduce: product
+var product_func = function(acc, val) {
+    return acc * val;
+};
+var product = reduce(numbers, product_func, 1);
+print("Product: ", product);
+
+// Compose functions
+var add_one = function(x) {
+    return x + 1;
+};
+var multiply_two = function(x) {
+    return x * 2;
+};
+
+var add_one_then_multiply_two = compose(multiply_two, add_one);
+print("\nComposition test:");
+print("  (5 + 1) * 2 = ", add_one_then_multiply_two(5));
+
+print("=== Done ===");

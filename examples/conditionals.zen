@@ -1,0 +1,71 @@
+// Example: Conditionals
+// Demonstrates if/else statements and boolean logic
+
+print("=== Conditionals Example ===");
+
+// Simple if
+var age = 25;
+if (age >= 18) {
+    print("You are an adult");
+}
+
+// If/else
+var temperature = 35;
+if (temperature > 30) {
+    print("It's hot!");
+} else {
+    print("It's cool");
+}
+
+// If/else if/else
+var score = 75;
+if (score >= 90) {
+    print("Grade: A");
+} else if (score >= 80) {
+    print("Grade: B");
+} else if (score >= 70) {
+    print("Grade: C");
+} else if (score >= 60) {
+    print("Grade: D");
+} else {
+    print("Grade: F");
+}
+
+// Nested conditions
+var hour = 14;
+var day = "Monday";
+
+if (hour >= 9 && hour <= 17) {
+    if (day == "Monday" || day == "Friday") {
+        print("Work hours on a weekday");
+    } else {
+        print("Work hours");
+    }
+} else {
+    print("Outside work hours");
+}
+
+// Boolean operators
+var x = 5;
+var y = 10;
+
+print("\nBoolean logic:");
+print("x > 0 && y > 0: ", x > 0 && y > 0);
+print("x > 10 || y > 8: ", x > 10 || y > 8);
+print("!(x > 10): ", !(x > 10));
+
+// Comparison chain
+if (0 < x && x < 10) {
+    print("x is between 0 and 10");
+}
+
+// Ternary-like pattern (using if/else)
+var status = nil;
+if (age >= 18) {
+    status = "adult";
+} else {
+    status = "minor";
+}
+print("Status: ", status);
+
+print("=== Done ===");
