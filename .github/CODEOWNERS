@@ -1,0 +1,8 @@
+# CODEOWNERS for zenlang
+# These owners will be the default reviewers for pull requests
+
+*    @zenithframework
+
+# You can add paths and teams, e.g.:
+# /docs/ @zenithframework/docs-team
+# /zenith-compiler-native/src/ @zenithframework/compiler-team
